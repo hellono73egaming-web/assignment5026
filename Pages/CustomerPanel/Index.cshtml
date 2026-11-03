@@ -1,0 +1,49 @@
+@page
+@model WebApplication2.Pages.CustomerPanel.IndexModel
+@{
+    ViewData["Title"] = "My Dashboard";
+}
+
+<h2 class="mb-1">Welcome, @Model.CurrentCustomer?.FullName</h2>
+<p class="text-muted mb-4">Loyalty points: <strong>@(Model.CurrentCustomer?.LoyaltyPoints ?? 0)</strong></p>
+
+<div class="row g-4">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Upcoming reservations</div>
+            <ul class="list-group list-group-flush">
+                @if (!Model.UpcomingReservations.Any())
+                {
+                    <li class="list-group-item text-muted">No upcoming reservations.</li>
+                }
+                @foreach (var r in Model.UpcomingReservations)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@r.StartTime.ToString("ddd, d MMM yyyy h:mm tt") &middot; Table @r.RestaurantTable?.TableNumber &middot; @r.PartySize pax</span>
+                        <span class="badge bg-secondary">@r.Status</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Notifications</div>
+            <ul class="list-group list-group-flush">
+                @if (!Model.Notifications.Any())
+                {
+                    <li class="list-group-item text-muted">No notifications.</li>
+                }
+                @foreach (var n in Model.Notifications)
+                {
+                    <li class="list-group-item">
+                        <div class="fw-semibold">@n.Title</div>
+                        <div class="small">@n.Message</div>
+                        <div class="small text-muted">@n.CreatedAt.ToString("d MMM, h:mm tt")</div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

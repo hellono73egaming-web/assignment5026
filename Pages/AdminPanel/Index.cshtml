@@ -1,0 +1,43 @@
+@page
+@model WebApplication2.Pages.AdminPanel.IndexModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<h2 class="mb-1">Admin Dashboard</h2>
+<p class="text-muted mb-4">Welcome back, @Model.AdminName.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="text-muted small">Customers</div>
+            <div class="fs-3 fw-bold">@Model.CustomerCount</div>
+        </div></div>
+    </div>
+    <div class="col-md">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="text-muted small">Staff</div>
+            <div class="fs-3 fw-bold">@Model.StaffCount</div>
+        </div></div>
+    </div>
+    <div class="col-md">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="text-muted small">Reservations today</div>
+            <div class="fs-3 fw-bold">@Model.TodayReservations</div>
+        </div></div>
+    </div>
+    <div class="col-md">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="text-muted small">Active orders</div>
+            <div class="fs-3 fw-bold">@Model.ActiveOrders</div>
+        </div></div>
+    </div>
+    <div class="col-md">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="text-muted small">Sales today</div>
+            <div class="fs-3 fw-bold">RM @Model.TodaySales.ToString("N2")</div>
+        </div></div>
+    </div>
+</div>
+
+<p class="text-muted">Management pages (menu, tables, staff, reports) will be linked here.</p>

@@ -1,0 +1,261 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = null; /* Fixes Centering */
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - RROMS</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-green: #1E3F20;
+            --accent-gold: #D4A373;
+            --bg-cream: #F9F6F0;
+            --text-dark: #2C3E50;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(30, 63, 32, 0.9), rgba(0, 0, 0, 0.7)), 
+                        url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            padding: 20px;
+        }
+
+        .login-wrapper {
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            background: #ffffff;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .brand-side {
+            background-color: var(--primary-green);
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: var(--bg-cream);
+            position: relative;
+        }
+
+        /* Texture Overlay */
+        .brand-side::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        .brand-side h2 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            z-index: 1;
+        }
+
+        .brand-side p { z-index: 1; color: #d1d8d2; }
+
+        .btn-outline-gold {
+            color: var(--accent-gold);
+            border: 2px solid var(--accent-gold);
+            border-radius: 50px;
+            padding: 10px 30px;
+            font-weight: 600;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-gold:hover {
+            background-color: var(--accent-gold);
+            color: var(--primary-green);
+        }
+
+        .form-side { padding: 60px 50px; background-color: #fff; }
+        .form-side h3 { font-weight: 600; color: var(--text-dark); margin-bottom: 30px; }
+
+        .form-floating > .form-control {
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            padding: 1rem 0.75rem;
+            background-color: #fcfcfc;
+        }
+
+        .form-floating > .form-control:focus {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 0.25rem rgba(212, 163, 115, 0.25);
+            background-color: #fff;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #888;
+            z-index: 10;
+        }
+
+        .btn-action {
+            background-color: var(--accent-gold);
+            color: var(--primary-green);
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-action:hover {
+            background-color: #c29262;
+            transform: translateY(-2px);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #aaa;
+            margin: 25px 0;
+            font-size: 0.9rem;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #eee;
+        }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+
+        .social-btn {
+            border: 1px solid #eee;
+            border-radius: 12px;
+            background: #fff;
+            padding: 10px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            transition: 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        .social-btn:hover { background-color: #f8f9fa; border-color: #ddd; }
+
+        @@media (max-width: 768px) {
+            .brand-side { display: none; }
+            .form-side { padding: 40px 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-wrapper">
+        <div class="login-wrapper">
+            <div class="row g-0">
+                
+                <!-- LEFT SIDE: Branding -->
+                <div class="col-lg-5 brand-side text-center">
+                    <i class="fa-solid fa-utensils fa-3x mb-4" style="color: var(--accent-gold); z-index: 1;"></i>
+                    <h2>Welcome Back</h2>
+                    <p class="mb-5">Log in to manage your reservations, track orders, and view your dining history.</p>
+                    <p class="small mb-3">New to RROMS?</p>
+                    <a asp-page="/Account/Register" class="btn btn-outline-gold">Create an Account</a>
+                </div>
+
+                <!-- RIGHT SIDE: Form -->
+                <div class="col-lg-7 form-side">
+                    <h3>Login to your account</h3>
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+                        
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.Email" class="form-control" placeholder="name@example.com" />
+                            <label asp-for="Input.Email"><i class="fa-regular fa-envelope me-2"></i>Email Address</label>
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-4 position-relative">
+                            <input asp-for="Input.Password" class="form-control" id="password" placeholder="Password" />
+                            <label asp-for="Input.Password"><i class="fa-solid fa-lock me-2"></i>Password</label>
+                            <i class="fa-regular fa-eye-slash password-toggle" onclick="togglePassword('password', this)"></i>
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input asp-for="Input.RememberMe" class="form-check-input" type="checkbox" id="rememberMe">
+                                <label class="form-check-label text-muted small" for="rememberMe">Keep me logged in</label>
+                            </div>
+                            <a href="#" class="text-decoration-none small fw-semibold" style="color: var(--primary-green);">Forgot Password?</a>
+                        </div>
+
+                        <button type="submit" class="btn btn-action mb-4">Sign In</button>
+
+                        <div class="divider">Or continue with</div>
+
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <button type="submit" class="social-btn" asp-page-handler="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" name="provider" value="Google" formnovalidate><i class="fab fa-google text-danger"></i> Google</button>
+                            </div>
+                            <div class="col-4">
+                                <button type="submit" class="social-btn" asp-page-handler="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" name="provider" value="Facebook" formnovalidate><i class="fab fa-facebook text-primary"></i> Facebook</button>
+                            </div>
+                            <div class="col-4">
+                                <button type="submit" class="social-btn" asp-page-handler="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" name="provider" value="Microsoft" formnovalidate><i class="fab fa-microsoft" style="color:#00a4ef;"></i> Microsoft</button>
+                            </div>
+                        </div>
+
+                    </form>
+
+                    <p class="text-center small mt-4 mb-0">
+                        <a asp-page="./StaffLogin" class="text-muted text-decoration-none">
+                            <i class="fa-solid fa-user-tie me-1"></i>Staff / Admin login
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(inputId, icon) {
+            const input = document.getElementById(inputId);
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        }
+    </script>
+</body>
+</html>

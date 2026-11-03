@@ -1,0 +1,228 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = null; /* Fixes Centering */
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - RROMS</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-green: #1E3F20;
+            --accent-gold: #D4A373;
+            --bg-cream: #F9F6F0;
+            --text-dark: #2C3E50;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(30, 63, 32, 0.9), rgba(0, 0, 0, 0.7)), 
+                        url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            padding: 20px;
+        }
+
+        .register-wrapper {
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            background: #ffffff;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .brand-side {
+            background-color: var(--primary-green);
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: var(--bg-cream);
+            position: relative;
+        }
+
+        /* Texture Overlay */
+        .brand-side::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        .brand-side h2 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            z-index: 1;
+        }
+
+        .brand-side p { z-index: 1; color: #d1d8d2; }
+
+        .btn-outline-gold {
+            color: var(--accent-gold);
+            border: 2px solid var(--accent-gold);
+            border-radius: 50px;
+            padding: 10px 30px;
+            font-weight: 600;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-gold:hover {
+            background-color: var(--accent-gold);
+            color: var(--primary-green);
+        }
+
+        .form-side { padding: 50px; background-color: #fff; }
+        .form-side h3 { font-weight: 600; color: var(--text-dark); margin-bottom: 25px; }
+
+        .form-floating > .form-control {
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            padding: 1rem 0.75rem;
+            background-color: #fcfcfc;
+        }
+
+        .form-floating > .form-control:focus {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 0.25rem rgba(212, 163, 115, 0.25);
+            background-color: #fff;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #888;
+            z-index: 10;
+        }
+
+        .btn-action {
+            background-color: var(--accent-gold);
+            color: var(--primary-green);
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-action:hover {
+            background-color: #c29262;
+            transform: translateY(-2px);
+        }
+
+        @@media (max-width: 768px) {
+            .brand-side { display: none; }
+            .form-side { padding: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-wrapper">
+        <div class="register-wrapper">
+            <div class="row g-0">
+                
+                <!-- LEFT SIDE: Branding -->
+                <div class="col-lg-5 brand-side text-center">
+                    <i class="fa-solid fa-utensils fa-3x mb-4" style="color: var(--accent-gold); z-index: 1;"></i>
+                    <h2>Join Us</h2>
+                    <p class="mb-5">Create an account to reserve tables, order food online, and track your dining history.</p>
+                    <p class="small mb-3">Already have an account?</p>
+                    <a asp-page="/Account/Login" class="btn btn-outline-gold">Log In Here</a>
+                </div>
+
+                <!-- RIGHT SIDE: Form -->
+                <div class="col-lg-7 form-side">
+                    <h3>Create an Account</h3>
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <form method="post">
+                        
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.FullName" class="form-control" placeholder="John Doe" />
+                            <label asp-for="Input.FullName"><i class="fa-regular fa-user me-2"></i>Full Name</label>
+                            <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.Email" class="form-control" placeholder="name@example.com" />
+                            <label asp-for="Input.Email"><i class="fa-regular fa-envelope me-2"></i>Email Address</label>
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.PhoneNumber" class="form-control" placeholder="+60123456789" />
+                            <label asp-for="Input.PhoneNumber"><i class="fa-solid fa-phone me-2"></i>Phone Number</label>
+                            <span asp-validation-for="Input.PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3 position-relative">
+                            <input asp-for="Input.Password" class="form-control" id="password" placeholder="Password" />
+                            <label asp-for="Input.Password"><i class="fa-solid fa-lock me-2"></i>Password</label>
+                            <i class="fa-regular fa-eye-slash password-toggle" onclick="togglePassword('password', this)"></i>
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-4 position-relative">
+                            <input asp-for="Input.ConfirmPassword" class="form-control" id="confirmPassword" placeholder="Confirm Password" />
+                            <label asp-for="Input.ConfirmPassword"><i class="fa-solid fa-lock me-2"></i>Confirm Password</label>
+                            <i class="fa-regular fa-eye-slash password-toggle" onclick="togglePassword('confirmPassword', this)"></i>
+                            <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-check mb-4">
+                            <input asp-for="Input.AgreeToTerms" class="form-check-input" type="checkbox" id="termsCheck">
+                            <label class="form-check-label small text-muted" for="termsCheck">
+                                I agree to the <a href="#" style="color: var(--primary-green);">Terms & Conditions</a> and <a href="#" style="color: var(--primary-green);">Privacy Policy</a>.
+                            </label>
+                            <br />
+                            <span asp-validation-for="Input.AgreeToTerms" class="text-danger small"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-action">Sign Up</button>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(inputId, icon) {
+            const input = document.getElementById(inputId);
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        }
+    </script>
+</body>
+</html>
