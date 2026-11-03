@@ -1,20 +1,20 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using WebApplication2.Data;
 using WebApplication2.Models;
+using WebApplication2.Services.Interfaces;
 
 namespace WebApplication2.Pages.CustomerPanel
 {
-    // Customer home. Access restricted to the Customer role in Program.cs.
+    // Presentation tier only: asks the service layer for data, never queries the database.
+    // Access restricted to the Customer role in Program.cs.
     public class IndexModel : PageModel
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IDashboardService _dashboard;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public IndexModel(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public IndexModel(IDashboardService dashboard, UserManager<ApplicationUser> userManager)
         {
-            _db = db;
+            _dashboard = dashboard;
             _userManager = userManager;
         }
 
@@ -24,24 +24,13 @@ namespace WebApplication2.Pages.CustomerPanel
 
         public async Task OnGetAsync()
         {
-            CurrentCustomer = await _userManager.GetUserAsync(User) as Customer;
-            if (CurrentCustomer == null) return;
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return;
 
-            var id = CurrentCustomer.Id;
-
-            UpcomingReservations = await _db.Reservations
-                .Include(r => r.RestaurantTable)
-                .Where(r => r.CustomerId == id && r.StartTime >= DateTime.Now
-                            && r.Status != ReservationStatus.Cancelled)
-                .OrderBy(r => r.StartTime)
-                .Take(5)
-                .ToListAsync();
-
-            Notifications = await _db.Notifications
-                .Where(n => n.UserId == id)
-                .OrderByDescending(n => n.CreatedAt)
-                .Take(5)
-                .ToListAsync();
+            var data = await _dashboard.GetCustomerDashboardAsync(userId);
+            CurrentCustomer = data.Customer;
+            UpcomingReservations = data.UpcomingReservations;
+            Notifications = data.Notifications;
         }
     }
 }
