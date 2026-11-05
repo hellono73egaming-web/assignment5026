@@ -1,0 +1,491 @@
+﻿@page
+@model WebApplication2.Pages.CustomerPanel.MenuModel
+@using WebApplication2.Models
+@{
+    ViewData["Title"] = "Digital Menu";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - RROMS</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --primary-green: #1E3F20; 
+            --accent-gold: #D4A373; 
+            --bg-cream: #F9F6F0; 
+            --text-dark: #2C3E50; 
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); }
+        
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+        
+        /* Cart Button in Navbar */
+        .cart-btn {
+            position: relative;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 8px;
+            padding: 6px 16px;
+            transition: 0.2s;
+        }
+        .cart-btn:hover { background: rgba(255,255,255,0.1); }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--accent-gold);
+            color: var(--primary-green);
+            font-weight: 700;
+            font-size: 0.75rem;
+            border-radius: 50%;
+            padding: 4px 8px;
+        }
+
+        /* Header */
+        .page-header { text-align: center; margin: 50px 0 30px; }
+        .page-header h1 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2.5rem; }
+        .page-header p { color: #6b7a72; font-size: 1.1rem; font-style: italic; }
+
+        /* Filters */
+        .filter-buttons { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
+        .filter-btn {
+            background: white;
+            border: 1px solid #e0e0e0;
+            color: var(--text-dark);
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        /* Food Cards */
+        .food-card {
+            background: white;
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .food-card:hover { transform: translateY(-5px); }
+        
+        .food-img-wrapper { position: relative; height: 200px; overflow: hidden; flex: none; }
+        .food-img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .food-card:hover .food-img { transform: scale(1.05); }
+        
+        .price-tag {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: var(--accent-gold);
+            color: var(--primary-green);
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .food-info { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+        .food-title { font-weight: 700; color: var(--text-dark); font-size: 1.15rem; margin-bottom: 5px; }
+        .food-desc { color: #6b7a72; font-size: 0.85rem; margin-bottom: 15px; line-height: 1.4; flex-grow: 1; font-style: italic; }
+        
+        .btn-add {
+            width: 100%;
+            background: rgba(30, 63, 32, 0.05);
+            color: var(--primary-green);
+            border: none;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 10px;
+            transition: 0.3s;
+            margin-top: auto;
+            font-size: 0.9rem;
+        }
+        .btn-add:hover { background: var(--primary-green); color: white; }
+        
+        .sold-out-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.6);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2;
+        }
+        .sold-out-badge {
+            background: #dc3545; color: white; padding: 8px 20px; 
+            font-weight: 700; border-radius: 8px; transform: rotate(-10deg);
+            box-shadow: 0 4px 10px rgba(220,53,69,0.4);
+        }
+
+        /* Cart Offcanvas */
+        .offcanvas { border-left: none; box-shadow: -5px 0 30px rgba(0,0,0,0.1); }
+        .cart-item { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .cart-item-img { width: 70px; height: 70px; border-radius: 10px; object-fit: cover; }
+        .cart-item-details { flex-grow: 1; }
+        .cart-item-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+        .cart-item-price { color: var(--primary-green); font-weight: 700; font-size: 0.9rem; }
+        
+        .qty-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .qty-btn { background: #f0f0f0; border: none; width: 24px; height: 24px; border-radius: 4px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .qty-btn:hover { background: #ddd; }
+        
+        .cart-total-section { background: var(--bg-cream); padding: 20px; border-radius: 12px; margin-top: auto; }
+        .btn-checkout { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; width: 100%; padding: 12px; border-radius: 10px; border: none; transition: 0.3s; }
+        .btn-checkout:hover { background: #b98550; color: white; }
+            .food-img-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#efece4; color:#cfc8b8; font-size:3rem; }
+        .cart-item-img.placeholder { display:flex; align-items:center; justify-content:center; background:#efece4; color:#cfc8b8; }
+        .menu-item.hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand" asp-page="/CustomerPanel/Index"><i class="fa-solid fa-utensils me-2"></i>RROMS</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/CustomerPanel/Menu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/BookTable">Book Table</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyReservations">My Reservations</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
+
+                    <!-- Cart Button -->
+                    <li class="nav-item ms-3">
+                        <button type="button" class="cart-btn" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                            <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                            <span class="cart-badge" id="cartBadge">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Our Menu</h1>
+            <p>"A taste of the old country, made fresh every day."</p>
+        </div>
+
+        @if (Model.Error != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.Error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Filters (one button per category in the database) -->
+        <div class="filter-buttons">
+            <button type="button" class="filter-btn active" data-filter="all">All Items</button>
+            @foreach (var c in Model.Categories)
+            {
+                <button type="button" class="filter-btn" data-filter="cat-@c.Id">@c.Name</button>
+            }
+        </div>
+
+        @if (!Model.Categories.SelectMany(c => c.MenuItems).Any())
+        {
+            <p class="text-center text-muted">The menu is being prepared. Please check back soon.</p>
+        }
+
+        <!-- Menu Grid -->
+        <div class="row g-4" id="menuGrid">
+            @foreach (var c in Model.Categories)
+            {
+                foreach (var item in c.MenuItems)
+                {
+                    <div class="col-md-6 col-lg-4 menu-item" data-category="cat-@c.Id">
+                        <div class="food-card">
+                            <div class="food-img-wrapper">
+                                @if (!item.IsAvailable)
+                                {
+                                    <div class="sold-out-overlay"><div class="sold-out-badge">SOLD OUT</div></div>
+                                }
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" class="food-img" alt="@item.Name" style="@(item.IsAvailable ? "" : "filter: grayscale(100%);")">
+                                }
+                                else
+                                {
+                                    <div class="food-img-placeholder"><i class="fa-solid fa-utensils"></i></div>
+                                }
+                                <div class="price-tag" style="@(item.IsAvailable ? "" : "background: #ccc;")">RM @item.Price.ToString("N2")</div>
+                            </div>
+                            <div class="food-info">
+                                <h5 class="food-title @(item.IsAvailable ? "" : "text-muted")">@item.Name</h5>
+                                <p class="food-desc">@item.Description</p>
+                                @if (item.IsAvailable)
+                                {
+                                    <button type="button" class="btn-add"
+                                            data-id="@item.Id" data-name="@item.Name"
+                                            data-price="@(item.Price.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                            data-image="@item.ImageUrl">
+                                        <i class="fa-solid fa-plus me-1"></i> Add to Order
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn-add" disabled style="background:#eee; color:#aaa; cursor:not-allowed;">Currently Unavailable</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Shopping Cart Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="cartOffcanvas" style="width: 400px;">
+        <div class="offcanvas-header border-bottom pb-3">
+            <h5 class="offcanvas-title fw-bold" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">
+                <i class="fa-solid fa-bag-shopping me-2"></i>Your Order
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column">
+
+            <div id="cartItemsContainer" class="flex-grow-1"></div>
+
+            <div id="emptyCartMessage" class="text-center text-muted mt-5">
+                <i class="fa-solid fa-basket-shopping fa-3x mb-3" style="color: #ddd;"></i>
+                <p>Your cart is empty.</p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="offcanvas">Browse Menu</button>
+            </div>
+
+            <!-- Checkout = a real POST form. Only item IDs + quantities are sent. -->
+            <form method="post" asp-page-handler="PlaceOrder" class="cart-total-section d-none" id="checkoutSection">
+                <input type="hidden" name="cartJson" id="cartJson" />
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold mb-1" for="orderType">Order type</label>
+                    <select class="form-select form-select-sm" name="orderType" id="orderType">
+                        <option value="@OrderType.DineIn">Dine-in</option>
+                        <option value="@OrderType.Takeaway">Takeaway</option>
+                    </select>
+                </div>
+                @if (Model.ActiveReservations.Any())
+                {
+                    <div class="mb-2" id="reservationWrap">
+                        <label class="form-label small fw-semibold mb-1" for="reservationId">For my booking (optional)</label>
+                        <select class="form-select form-select-sm" name="reservationId" id="reservationId">
+                            <option value="">No booking</option>
+                            @foreach (var r in Model.ActiveReservations)
+                            {
+                                <option value="@r.Id">@r.StartTime.ToString("ddd d MMM, h:mm tt") - Table @r.RestaurantTable?.TableNumber</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1" for="orderNotes">Notes for the kitchen (optional)</label>
+                    <input type="text" class="form-control form-control-sm" name="notes" id="orderNotes" maxlength="500" placeholder="e.g. no onion, extra spicy">
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal</span>
+                    <span class="fw-bold" id="cartSubtotal">RM 0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Service tax (@Model.TaxPercent.ToString("0.##")%)</span>
+                    <span class="fw-bold" id="cartTax">RM 0.00</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="fw-bold fs-5">Total</span>
+                    <span class="fw-bold fs-5" style="color: var(--primary-green);" id="cartTotal">RM 0.00</span>
+                </div>
+                <p class="small text-muted mb-3">Any active promotions are applied when you place the order.</p>
+                <button type="submit" class="btn-checkout">
+                    Place Order <i class="fa-solid fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order placed modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px; border: none;">
+                <div class="modal-body text-center p-5">
+                    <i class="fa-solid fa-circle-check fa-5x mb-3" style="color: var(--primary-green);"></i>
+                    <h3 class="mb-2" style="font-family: 'Playfair Display', serif; font-weight: 700;">Order Placed!</h3>
+                    <p class="text-muted mb-4">Your order has been sent to the kitchen.</p>
+                    <div class="bg-light p-3 rounded text-start mb-4">
+                        <p class="mb-1 small"><strong>Order:</strong> @Model.PlacedOrderNumber</p>
+                        <p class="mb-1 small"><strong>Total:</strong> RM @Model.PlacedOrderTotal</p>
+                        <p class="mb-0 small"><strong>Status:</strong> <span class="badge bg-warning text-dark">Pending</span></p>
+                    </div>
+                    <button type="button" class="btn btn-checkout" data-bs-dismiss="modal">Continue browsing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const TAX_RATE = @(Model.TaxPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)) / 100;
+        const CART_KEY = 'rroms_cart';
+
+        // --- 1. Category filtering ---
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const f = btn.dataset.filter;
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    item.classList.toggle('hidden', f !== 'all' && item.dataset.category !== f);
+                });
+            });
+        });
+
+        // --- 2. Cart (kept in sessionStorage so it survives page reloads) ---
+        let cart = [];
+        try { cart = JSON.parse(sessionStorage.getItem(CART_KEY) || '[]'); } catch { cart = []; }
+
+        function saveCart() {
+            try { sessionStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch { /* storage unavailable */ }
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function addToCart(id, name, price, image) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) existing.qty = Math.min(existing.qty + 1, 50);
+            else cart.push({ id, name, price, image, qty: 1 });
+            saveCart();
+            updateCartUI();
+        }
+
+        document.querySelectorAll('.btn-add[data-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const d = btn.dataset;
+                addToCart(parseInt(d.id, 10), d.name, parseFloat(d.price), d.image || '');
+            });
+        });
+
+        function updateCartUI() {
+            const container = document.getElementById('cartItemsContainer');
+            const emptyMsg = document.getElementById('emptyCartMessage');
+            const checkoutSec = document.getElementById('checkoutSection');
+            const badge = document.getElementById('cartBadge');
+
+            container.innerHTML = '';
+            let totalQty = 0, subtotal = 0;
+
+            if (cart.length === 0) {
+                emptyMsg.style.display = 'block';
+                checkoutSec.classList.add('d-none');
+                badge.innerText = '0';
+                return;
+            }
+
+            emptyMsg.style.display = 'none';
+            checkoutSec.classList.remove('d-none');
+
+            cart.forEach((item, index) => {
+                totalQty += item.qty;
+                subtotal += item.price * item.qty;
+                const img = item.image
+                    ? `<img src="${escapeHtml(item.image)}" class="cart-item-img" alt="">`
+                    : `<div class="cart-item-img placeholder"><i class="fa-solid fa-utensils"></i></div>`;
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="cart-item">
+                        ${img}
+                        <div class="cart-item-details">
+                            <div class="d-flex justify-content-between">
+                                <div class="cart-item-title">${escapeHtml(item.name)}</div>
+                                <div class="cart-item-price">RM ${(item.price * item.qty).toFixed(2)}</div>
+                            </div>
+                            <div class="qty-control">
+                                <button type="button" class="qty-btn" onclick="changeQty(${index}, -1)" aria-label="Decrease">-</button>
+                                <span class="small fw-bold">${item.qty}</span>
+                                <button type="button" class="qty-btn" onclick="changeQty(${index}, 1)" aria-label="Increase">+</button>
+                                <button type="button" class="btn btn-sm text-danger ms-auto p-0" onclick="removeItem(${index})" aria-label="Remove"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>`);
+            });
+
+            const tax = subtotal * TAX_RATE;
+            document.getElementById('cartSubtotal').innerText = `RM ${subtotal.toFixed(2)}`;
+            document.getElementById('cartTax').innerText = `RM ${tax.toFixed(2)}`;
+            document.getElementById('cartTotal').innerText = `RM ${(subtotal + tax).toFixed(2)}`;
+            badge.innerText = totalQty;
+
+            // Only IDs and quantities go to the server
+            document.getElementById('cartJson').value =
+                JSON.stringify(cart.map(i => ({ menuItemId: i.id, quantity: i.qty })));
+        }
+
+        function changeQty(index, change) {
+            cart[index].qty = Math.min(cart[index].qty + change, 50);
+            if (cart[index].qty <= 0) cart.splice(index, 1);
+            saveCart();
+            updateCartUI();
+        }
+
+        function removeItem(index) {
+            cart.splice(index, 1);
+            saveCart();
+            updateCartUI();
+        }
+
+        // Booking link only makes sense for dine-in
+        const orderType = document.getElementById('orderType');
+        const resWrap = document.getElementById('reservationWrap');
+        if (orderType && resWrap) {
+            orderType.addEventListener('change', () => {
+                resWrap.style.display = orderType.value === 'Takeaway' ? 'none' : '';
+            });
+        }
+
+        // After a successful order: clear the cart and show the confirmation
+        @if (Model.PlacedOrderNumber != null)
+        {
+            <text>
+            cart = [];
+            saveCart();
+            new bootstrap.Modal(document.getElementById('orderModal')).show();
+            </text>
+        }
+
+        updateCartUI();
+    </script>
+</body>
+</html>

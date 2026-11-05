@@ -268,7 +268,7 @@ namespace WebApplication2.Services
         // CS12 / RS17 - history
         public Task<List<Reservation>> GetForCustomerAsync(string customerId) =>
             _db.Reservations
-               .Include(r => r.RestaurantTable)
+               .Include(r => r.RestaurantTable).ThenInclude(t => t!.DiningArea)
                .Where(r => r.CustomerId == customerId)
                .OrderByDescending(r => r.StartTime)
                .ToListAsync();

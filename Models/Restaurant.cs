@@ -52,6 +52,11 @@ namespace WebApplication2.Models
         [StringLength(250)]
         public string? Description { get; set; }
 
+        // Photo shown on the booking page and admin list
+        [StringLength(500)]
+        [Display(Name = "Image URL")]
+        public string? ImageUrl { get; set; }
+
         public ICollection<RestaurantTable> Tables { get; set; } = new List<RestaurantTable>();
     }
 

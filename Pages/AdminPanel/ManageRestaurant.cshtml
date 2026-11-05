@@ -1,0 +1,409 @@
+﻿@page
+@model WebApplication2.Pages.AdminPanel.ManageRestaurantModel
+@{
+    ViewData["Title"] = "Manage Restaurant";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Restaurant - RROMS Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
+
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; transition: color .2s; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2rem; margin: 40px 0 24px; }
+
+        /* Tabs */
+        .nav-tabs { border-bottom: 2px solid var(--line); margin-bottom: 24px; }
+        .nav-tabs .nav-link { border: none; color: var(--muted); font-weight: 600; font-size: 1.05rem; padding: 12px 20px; transition: color .2s; }
+        .nav-tabs .nav-link:hover { color: var(--primary-green); }
+        .nav-tabs .nav-link.active { color: var(--primary-green); border-bottom: 3px solid var(--accent-gold); background: transparent; }
+
+        /* Cards */
+        .content-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,.02); }
+        
+        /* Tables */
+        .table { margin-bottom: 0; }
+        .table th { color: var(--muted); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); padding: 16px; }
+        .table td { padding: 16px; vertical-align: middle; border-bottom: 1px solid var(--line); }
+        
+        /* Table Image Thumbnail */
+        .area-thumb {
+            width: 60px; 
+            height: 60px; 
+            object-fit: cover; 
+            border-radius: 8px; 
+            border: 1px solid var(--line);
+        }
+        
+        /* Buttons */
+        .btn-gold { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; border: 0; border-radius: 10px; padding: 10px 22px; transition: background .2s; }
+        .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+        
+        .btn-action { padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: .85rem; }
+        .btn-outline-green { border: 1.5px solid var(--primary-green); color: var(--primary-green); }
+        .btn-outline-green:hover { background: var(--primary-green); color: #fff; }
+        .btn-quiet-danger { border: 1.5px solid #dc3545; color: #dc3545; }
+        .btn-quiet-danger:hover { background: #dc3545; color: #fff; }
+
+        /* Forms & Inputs */
+        .form-control, .form-select { border-radius: 10px; padding: 10px 15px; border-color: var(--line); }
+        .form-control:focus, .form-select:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 0.25rem rgba(212,163,115,.25); }
+        .form-label { font-weight: 600; color: var(--text-dark); font-size: .9rem; }
+        .form-check-input:checked { background-color: var(--primary-green); border-color: var(--primary-green); }
+
+        /* Status Badge */
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
+        .badge-active { background: #e3f3e7; color: #1d6b34; }
+        .badge-inactive { background: #fbeceb; color: #a02e24; }
+            .area-thumb.placeholder { display:flex; align-items:center; justify-content:center; background: var(--bg-cream); color:#cfc8b8; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>RROMS Admin</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" asp-page="/AdminPanel/ManageRestaurant">Manage Restaurant</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" title="Coming soon">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" title="Coming soon">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <h1 class="page-title">Restaurant Configuration</h1>
+
+        @if (Model.Message != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="status">
+                <i class="fa-solid fa-circle-check me-2"></i>@Model.Message
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (Model.Error != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.Error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="restaurantTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(Model.Tab == "areas" ? "active" : "")" id="areas-tab" data-bs-toggle="tab" data-bs-target="#areas" type="button" role="tab">Dining Areas</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(Model.Tab == "tables" ? "active" : "")" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables" type="button" role="tab">Tables</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(Model.Tab == "hours" ? "active" : "")" id="hours-tab" data-bs-toggle="tab" data-bs-target="#hours" type="button" role="tab">Opening Hours</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="restaurantTabsContent">
+
+            <!-- 1. DINING AREAS TAB -->
+            <div class="tab-pane fade @(Model.Tab == "areas" ? "show active" : "")" id="areas" role="tabpanel" aria-labelledby="areas-tab">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">Dining Areas</h5>
+                        <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#areaModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> Add Area</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Tables</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Areas.Any())
+                                {
+                                    <tr><td colspan="5" class="text-muted text-center">No dining areas yet. Add one to start.</td></tr>
+                                }
+                                @foreach (var area in Model.Areas)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(area.ImageUrl))
+                                            {
+                                                <img src="@area.ImageUrl" class="area-thumb" alt="@area.Name">
+                                            }
+                                            else
+                                            {
+                                                <div class="area-thumb placeholder"><i class="fa-regular fa-image"></i></div>
+                                            }
+                                        </td>
+                                        <td class="fw-semibold">@area.Name</td>
+                                        <td class="text-muted">@(area.Description ?? "-")</td>
+                                        <td>@area.Tables.Count</td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#areaModal"
+                                                    data-id="@area.Id" data-name="@area.Name"
+                                                    data-description="@area.Description" data-image="@area.ImageUrl">
+                                                <i class="fa-solid fa-pen"></i> Edit
+                                            </button>
+                                            <form method="post" asp-page-handler="DeleteArea" asp-route-id="@area.Id" class="d-inline"
+                                                  onsubmit="return confirm('Delete this dining area?');">
+                                                <button type="submit" class="btn btn-sm btn-quiet-danger btn-action"><i class="fa-solid fa-trash"></i> Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. TABLES TAB -->
+            <div class="tab-pane fade @(Model.Tab == "tables" ? "show active" : "")" id="tables" role="tabpanel" aria-labelledby="tables-tab">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">Tables</h5>
+                        <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#tableModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> Add Table</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Table #</th>
+                                    <th>Seats</th>
+                                    <th>Dining Area</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Tables.Any())
+                                {
+                                    <tr><td colspan="5" class="text-muted text-center">No tables yet.</td></tr>
+                                }
+                                @foreach (var t in Model.Tables)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@t.TableNumber</td>
+                                        <td>@t.Capacity</td>
+                                        <td>@t.DiningArea?.Name</td>
+                                        <td>
+                                            @if (t.IsActive)
+                                            {
+                                                <span class="status-badge badge-active">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status-badge badge-inactive">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#tableModal"
+                                                    data-id="@t.Id" data-number="@t.TableNumber" data-capacity="@t.Capacity"
+                                                    data-area="@t.DiningAreaId" data-active="@(t.IsActive ? "true" : "false")">
+                                                <i class="fa-solid fa-pen"></i> Edit
+                                            </button>
+                                            <form method="post" asp-page-handler="ToggleTable" asp-route-id="@t.Id" asp-route-active="@(!t.IsActive)" class="d-inline">
+                                                @if (t.IsActive)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-quiet-danger btn-action"><i class="fa-solid fa-ban"></i> Deactivate</button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success btn-action"><i class="fa-solid fa-check"></i> Activate</button>
+                                                }
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. OPENING HOURS TAB -->
+            <div class="tab-pane fade @(Model.Tab == "hours" ? "show active" : "")" id="hours" role="tabpanel" aria-labelledby="hours-tab">
+                <div class="content-card">
+                    <form method="post" asp-page-handler="SaveHours">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0">Opening Hours</h5>
+                            <button type="submit" class="btn btn-gold"><i class="fa-solid fa-floppy-disk me-1"></i> Save Hours</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Open Time</th>
+                                        <th>Close Time</th>
+                                        <th class="text-center">Closed?</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (var i = 0; i < Model.Hours.Count; i++)
+                                    {
+                                        var h = Model.Hours[i];
+                                        <tr>
+                                            <td class="fw-semibold">
+                                                @h.Day
+                                                <input type="hidden" name="hours[@i].Day" value="@((int)h.Day)" />
+                                            </td>
+                                            <td><input type="time" class="form-control" name="hours[@i].OpenTime" value="@(h.OpenTime.ToString("hh\\:mm"))"></td>
+                                            <td><input type="time" class="form-control" name="hours[@i].CloseTime" value="@(h.CloseTime.ToString("hh\\:mm"))"></td>
+                                            <td class="text-center">
+                                                <input class="form-check-input fs-5" type="checkbox" name="hours[@i].IsClosed" value="true" @(h.IsClosed ? "checked" : "")>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT DINING AREA MODAL -->
+    <div class="modal fade" id="areaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="areaModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Add New Dining Area</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveArea">
+                        <input type="hidden" name="area.Id" id="areaId" value="0" />
+                        <div class="mb-3">
+                            <label class="form-label" for="areaName">Area Name</label>
+                            <input type="text" class="form-control" name="area.Name" id="areaName" placeholder="e.g., Outdoor Patio, Rooftop" maxlength="50" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="areaDescription">Description</label>
+                            <textarea class="form-control" name="area.Description" id="areaDescription" rows="2" maxlength="250" placeholder="e.g., Al fresco dining with a view..."></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label" for="areaImage">Image URL</label>
+                            <input type="url" class="form-control" name="area.ImageUrl" id="areaImage" placeholder="Paste an image link (Unsplash, etc.)">
+                            <div class="form-text small">For demo purposes, you can use: <br> <code>https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?q=80&w=800&auto=format&fit=crop</code></div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Area</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT TABLE MODAL -->
+    <div class="modal fade" id="tableModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="tableModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Add Table</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveTable">
+                        <input type="hidden" name="table.Id" id="tableId" value="0" />
+                        <div class="mb-3">
+                            <label class="form-label" for="tableNumber">Table Number</label>
+                            <input type="text" class="form-control" name="table.TableNumber" id="tableNumber" placeholder="e.g., M1, W2, VIP1" maxlength="10" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="tableCapacity">Number of Seats (1-20)</label>
+                            <input type="number" class="form-control" name="table.Capacity" id="tableCapacity" min="1" max="20" value="2" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="tableArea">Dining Area</label>
+                            <select class="form-select" name="table.DiningAreaId" id="tableArea" required>
+                                <option value="">Select an area...</option>
+                                @foreach (var area in Model.Areas)
+                                {
+                                    <option value="@area.Id">@area.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" name="table.IsActive" value="true" id="activeSwitch" checked>
+                            <label class="form-check-label fw-semibold" for="activeSwitch">Table is Active</label>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Table</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Fill the area modal for Add (id 0) or Edit (data- attributes from the clicked button)
+        document.getElementById('areaModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            document.getElementById('areaModalTitle').textContent = editing ? 'Edit Dining Area' : 'Add New Dining Area';
+            document.getElementById('areaId').value = editing ? b.id : 0;
+            document.getElementById('areaName').value = editing ? (b.name || '') : '';
+            document.getElementById('areaDescription').value = editing ? (b.description || '') : '';
+            document.getElementById('areaImage').value = editing ? (b.image || '') : '';
+        });
+
+        // Same idea for the table modal
+        document.getElementById('tableModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            document.getElementById('tableModalTitle').textContent = editing ? 'Edit Table ' + b.number : 'Add Table';
+            document.getElementById('tableId').value = editing ? b.id : 0;
+            document.getElementById('tableNumber').value = editing ? b.number : '';
+            document.getElementById('tableCapacity').value = editing ? b.capacity : 2;
+            document.getElementById('tableArea').value = editing ? b.area : '';
+            document.getElementById('activeSwitch').checked = editing ? b.active === 'true' : true;
+        });
+    </script>
+</body>
+</html>

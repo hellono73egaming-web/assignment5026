@@ -7,6 +7,12 @@
 <h2 class="mb-1">Welcome, @Model.CurrentCustomer?.FullName</h2>
 <p class="text-muted mb-4">Loyalty points: <strong>@(Model.CurrentCustomer?.LoyaltyPoints ?? 0)</strong></p>
 
+<div class="d-flex gap-2 mb-4">
+    <a class="btn btn-success" asp-page="/CustomerPanel/Menu">Order food</a>
+    <a class="btn btn-success" asp-page="/CustomerPanel/BookTable">Book a table</a>
+    <a class="btn btn-outline-success" asp-page="/CustomerPanel/MyReservations">My reservations</a>
+</div>
+
 <div class="row g-4">
     <div class="col-md-7">
         <div class="card shadow-sm">
