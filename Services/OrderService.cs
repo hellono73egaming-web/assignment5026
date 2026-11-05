@@ -10,6 +10,7 @@ namespace WebApplication2.Services
     {
         public int MenuItemId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public MenuItemType ItemType { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
@@ -51,8 +52,8 @@ namespace WebApplication2.Services
         private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
         {
             [OrderStatus.Pending]      = new[] { OrderStatus.Preparing, OrderStatus.Cancelled },
-            [OrderStatus.Preparing]    = new[] { OrderStatus.ReadyToServe, OrderStatus.Cancelled },
-            [OrderStatus.ReadyToServe] = new[] { OrderStatus.Served },
+            [OrderStatus.Preparing]    = new[] { OrderStatus.ReadyToServe, OrderStatus.Pending, OrderStatus.Cancelled },   // Pending = kitchen "undo"
+            [OrderStatus.ReadyToServe] = new[] { OrderStatus.Served, OrderStatus.Preparing },                         // Preparing = kitchen "undo"
             [OrderStatus.Served]       = new[] { OrderStatus.Completed },
             [OrderStatus.Completed]    = Array.Empty<OrderStatus>(),
             [OrderStatus.Cancelled]    = Array.Empty<OrderStatus>()
@@ -108,6 +109,7 @@ namespace WebApplication2.Services
                 {
                     MenuItemId = item.Id,
                     Name = item.Name,
+                    ImageUrl = item.ImageUrl,
                     ItemType = item.ItemType,
                     Quantity = line.Quantity,
                     UnitPrice = item.Price,

@@ -1,0 +1,305 @@
+﻿@page
+@model WebApplication2.Pages.StaffPanel.ActiveOrdersModel
+@using WebApplication2.Models
+@using WebApplication2.Pages.StaffPanel
+@{
+    ViewData["Title"] = "Active Orders";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Orders - RROMS Staff</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); min-height: 100vh; }
+        
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin: 30px 0; }
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); margin: 0; }
+
+        /* Kanban Board Layout */
+        .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; min-height: 70vh; }
+        .kanban-column { flex: 1; min-width: 320px; background: #f0f2f5; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; }
+        
+        /* Column Headers */
+        .column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #ddd; }
+        .column-header h5 { font-weight: 700; margin: 0; font-size: 1.1rem; color: var(--text-dark); }
+        .column-badge { background: #fff; color: var(--text-dark); font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+        /* Order Cards */
+        .order-card { background: #fff; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 5px solid #ccc; transition: all 0.3s ease; }
+        .order-card.status-new { border-left-color: #0dcaf0; }
+        .order-card.status-preparing { border-left-color: #ffc107; }
+        .order-card.status-ready { border-left-color: #198754; }
+
+        .card-header-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .order-id { font-weight: 700; font-size: 1.05rem; color: var(--primary-green); }
+        .order-time { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+        .order-table { display: inline-block; background: var(--text-dark); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; }
+
+        .order-items { list-style: none; padding: 0; margin: 0 0 15px 0; font-size: 0.9rem; }
+        .order-items li { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        .order-items li span:first-child { font-weight: 600; color: var(--primary-green); margin-right: 10px; }
+
+        /* Action Buttons Container */
+        .action-row { display: flex; gap: 8px; }
+
+        .btn-action { flex-grow: 1; font-weight: 700; font-size: 0.85rem; border-radius: 8px; padding: 8px; border: none; transition: 0.2s; color: white; }
+        .btn-start { background-color: #0dcaf0; }
+        .btn-start:hover { background-color: #0bacce; }
+        .btn-ready { background-color: #ffc107; color: #000; }
+        .btn-ready:hover { background-color: #e0a800; }
+        .btn-serve { background-color: #198754; }
+        .btn-serve:hover { background-color: #146c43; }
+
+        /* Undo Button */
+        .btn-undo { width: 38px; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; background: #fff; color: #888; border-radius: 8px; transition: 0.2s; }
+        .btn-undo:hover { background: #f8f9fa; color: #dc3545; border-color: #dc3545; }
+
+        /* Empty State */
+        .empty-state { text-align: center; padding: 30px; color: #999; font-style: italic; font-size: 0.9rem; }
+
+        /* Toast Container */
+        .toast-container { position: fixed; top: 80px; right: 20px; z-index: 1055; }
+            .action-row form { display: contents; }
+        .order-customer { font-size: .8rem; color: var(--muted); margin-left: 8px; }
+        .live-note { font-size: .8rem; color: var(--muted); }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container">
+        <div id="actionToast" class="toast align-items-center text-white @(Model.Error != null ? "bg-danger" : (Model.MessageIsUndo ? "bg-secondary" : "bg-success")) border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">@(Model.Error ?? Model.Message)</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" asp-page="/StaffPanel/Index"><i class="fa-solid fa-utensils me-2"></i>RROMS Staff</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/StaffPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" title="Coming soon">Today's Reservations</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/StaffPanel/ActiveOrders">Active Orders</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" title="Coming soon">Billing</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 pb-5">
+
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Live Kitchen Board</h2>
+                <span class="live-note"><i class="fa-solid fa-circle text-success me-1" style="font-size:.5rem;vertical-align:middle;"></i>Updates automatically every 30 seconds</span>
+            </div>
+            <button type="button" class="btn btn-outline-dark" onclick="location.reload()"><i class="fa-solid fa-rotate-right me-2"></i>Refresh</button>
+        </div>
+
+        <div class="kanban-board">
+
+            <div class="kanban-column">
+                <div class="column-header">
+                    <h5 class="text-info"><i class="fa-solid fa-bell me-2"></i>New Orders</h5>
+                    <span class="column-badge">@Model.NewOrders.Count</span>
+                </div>
+                <div class="column-body">
+                    @foreach (var o in Model.NewOrders)
+                    {
+                        <div class="order-card status-new">
+                            <div class="card-header-row">
+                                <span class="order-id">#@o.OrderNumber</span>
+                                <span class="order-time"><i class="fa-regular fa-clock me-1"></i>@ActiveOrdersModel.TimeAgo(o.UpdatedAt ?? o.CreatedAt)</span>
+                            </div>
+                            <span class="order-table">@ActiveOrdersModel.TableLabel(o)</span>
+                            <span class="order-customer">@o.Customer?.FullName</span>
+                            <ul class="order-items">
+                                @foreach (var oi in o.OrderItems)
+                                {
+                                    <li><span>@(oi.Quantity)x</span> @oi.MenuItem?.Name
+                                        @if (!string.IsNullOrEmpty(oi.Remarks)) { <small class="text-muted ms-1">(@oi.Remarks)</small> }
+                                    </li>
+                                }
+                            </ul>
+                            @if (!string.IsNullOrWhiteSpace(o.Notes))
+                            {
+                                <div class="text-muted small mb-3"><i class="fa-solid fa-comment-dots me-1"></i> Request: @o.Notes</div>
+                            }
+                            <div class="action-row">
+                                <form method="post" asp-page-handler="Move">
+                                    <input type="hidden" name="id" value="@o.Id" />
+                                    <input type="hidden" name="orderNumber" value="@o.OrderNumber" />
+                                    <input type="hidden" name="status" value="Preparing" />
+                                    <button type="submit" class="btn btn-action btn-start">
+                                        Start Preparing <i class="fa-solid fa-fire ms-1"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    @if (!Model.NewOrders.Any())
+                    {
+                        <div class="empty-state">No new orders.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="kanban-column">
+                <div class="column-header">
+                    <h5 class="text-warning"><i class="fa-solid fa-fire me-2"></i>Preparing</h5>
+                    <span class="column-badge">@Model.Preparing.Count</span>
+                </div>
+                <div class="column-body">
+                    @foreach (var o in Model.Preparing)
+                    {
+                        <div class="order-card status-preparing">
+                            <div class="card-header-row">
+                                <span class="order-id">#@o.OrderNumber</span>
+                                <span class="order-time"><i class="fa-regular fa-clock me-1"></i>@ActiveOrdersModel.TimeAgo(o.UpdatedAt ?? o.CreatedAt)</span>
+                            </div>
+                            <span class="order-table">@ActiveOrdersModel.TableLabel(o)</span>
+                            <span class="order-customer">@o.Customer?.FullName</span>
+                            <ul class="order-items">
+                                @foreach (var oi in o.OrderItems)
+                                {
+                                    <li><span>@(oi.Quantity)x</span> @oi.MenuItem?.Name
+                                        @if (!string.IsNullOrEmpty(oi.Remarks)) { <small class="text-muted ms-1">(@oi.Remarks)</small> }
+                                    </li>
+                                }
+                            </ul>
+                            @if (!string.IsNullOrWhiteSpace(o.Notes))
+                            {
+                                <div class="text-muted small mb-3"><i class="fa-solid fa-comment-dots me-1"></i> Request: @o.Notes</div>
+                            }
+                            <div class="action-row">
+                                <form method="post" asp-page-handler="Move">
+                                    <input type="hidden" name="id" value="@o.Id" />
+                                    <input type="hidden" name="orderNumber" value="@o.OrderNumber" />
+                                    <input type="hidden" name="status" value="ReadyToServe" />
+                                    <button type="submit" class="btn btn-action btn-ready">
+                                        Mark Ready <i class="fa-solid fa-bell-concierge ms-1"></i>
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="Move">
+                                    <input type="hidden" name="id" value="@o.Id" />
+                                    <input type="hidden" name="orderNumber" value="@o.OrderNumber" />
+                                    <input type="hidden" name="status" value="Pending" />
+                                    <input type="hidden" name="undo" value="true" />
+                                    <button type="submit" class="btn btn-undo" title="Oops! Move back to New">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    @if (!Model.Preparing.Any())
+                    {
+                        <div class="empty-state">No orders currently cooking.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="kanban-column">
+                <div class="column-header">
+                    <h5 class="text-success"><i class="fa-solid fa-bell-concierge me-2"></i>Ready to Serve</h5>
+                    <span class="column-badge">@Model.Ready.Count</span>
+                </div>
+                <div class="column-body">
+                    @foreach (var o in Model.Ready)
+                    {
+                        <div class="order-card status-ready">
+                            <div class="card-header-row">
+                                <span class="order-id">#@o.OrderNumber</span>
+                                <span class="order-time"><i class="fa-regular fa-clock me-1"></i>@ActiveOrdersModel.TimeAgo(o.UpdatedAt ?? o.CreatedAt)</span>
+                            </div>
+                            <span class="order-table">@ActiveOrdersModel.TableLabel(o)</span>
+                            <span class="order-customer">@o.Customer?.FullName</span>
+                            <ul class="order-items">
+                                @foreach (var oi in o.OrderItems)
+                                {
+                                    <li><span>@(oi.Quantity)x</span> @oi.MenuItem?.Name
+                                        @if (!string.IsNullOrEmpty(oi.Remarks)) { <small class="text-muted ms-1">(@oi.Remarks)</small> }
+                                    </li>
+                                }
+                            </ul>
+                            @if (!string.IsNullOrWhiteSpace(o.Notes))
+                            {
+                                <div class="text-muted small mb-3"><i class="fa-solid fa-comment-dots me-1"></i> Request: @o.Notes</div>
+                            }
+                            <div class="action-row">
+                                <form method="post" asp-page-handler="Move">
+                                    <input type="hidden" name="id" value="@o.Id" />
+                                    <input type="hidden" name="orderNumber" value="@o.OrderNumber" />
+                                    <input type="hidden" name="status" value="Served" />
+                                    <button type="submit" class="btn btn-action btn-serve">
+                                        Mark Served <i class="fa-solid fa-check ms-1"></i>
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="Move">
+                                    <input type="hidden" name="id" value="@o.Id" />
+                                    <input type="hidden" name="orderNumber" value="@o.OrderNumber" />
+                                    <input type="hidden" name="status" value="Preparing" />
+                                    <input type="hidden" name="undo" value="true" />
+                                    <button type="submit" class="btn btn-undo" title="Oops! Move back to Preparing">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    @if (!Model.Ready.Any())
+                    {
+                        <div class="empty-state">No orders waiting to be served.</div>
+                    }
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show the result of the last move
+        @if (Model.Message != null || Model.Error != null)
+        {
+            <text>new bootstrap.Toast(document.getElementById('actionToast')).show();</text>
+        }
+
+        // Live board: reload every 30 seconds so new customer orders appear (Intermediate #2)
+        setTimeout(() => location.reload(), 30000);
+    </script>
+</body>
+</html>

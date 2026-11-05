@@ -1,0 +1,388 @@
+﻿@page
+@model WebApplication2.Pages.AdminPanel.ManageMenuModel
+@using WebApplication2.Models
+@{
+    ViewData["Title"] = "Manage Menu";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Menu - RROMS Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
+
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; transition: color .2s; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2rem; margin: 40px 0 24px; }
+
+        /* Tabs */
+        .nav-tabs { border-bottom: 2px solid var(--line); margin-bottom: 24px; }
+        .nav-tabs .nav-link { border: none; color: var(--muted); font-weight: 600; font-size: 1.05rem; padding: 12px 20px; transition: color .2s; }
+        .nav-tabs .nav-link:hover { color: var(--primary-green); }
+        .nav-tabs .nav-link.active { color: var(--primary-green); border-bottom: 3px solid var(--accent-gold); background: transparent; }
+
+        /* Cards */
+        .content-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,.02); }
+        
+        /* Tables */
+        .table { margin-bottom: 0; }
+        .table th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); padding: 12px 16px; white-space: nowrap; }
+        .table td { padding: 12px 16px; vertical-align: middle; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+        
+        /* Thumbnails */
+        .item-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+
+        /* Buttons */
+        .btn-gold { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; border: 0; border-radius: 10px; padding: 10px 22px; transition: background .2s; }
+        .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+        
+        .btn-action { padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: .85rem; }
+        .btn-outline-green { border: 1.5px solid var(--primary-green); color: var(--primary-green); }
+        .btn-outline-green:hover { background: var(--primary-green); color: #fff; }
+        .btn-quiet-danger { border: 1.5px solid #dc3545; color: #dc3545; }
+        .btn-quiet-danger:hover { background: #dc3545; color: #fff; }
+
+        /* Forms & Inputs */
+        .form-control, .form-select { border-radius: 10px; padding: 10px 15px; border-color: var(--line); }
+        .form-control:focus, .form-select:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 0.25rem rgba(212,163,115,.25); }
+        .form-label { font-weight: 600; color: var(--text-dark); font-size: .9rem; }
+        .form-check-input:checked { background-color: var(--primary-green); border-color: var(--primary-green); }
+
+        /* Status Badge */
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
+        .badge-available { background: #e3f3e7; color: #1d6b34; }
+        .badge-soldout { background: #fbeceb; color: #a02e24; }
+
+        /* Toast Container */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+            .item-thumb.placeholder { display:flex; align-items:center; justify-content:center; background: var(--bg-cream); color:#cfc8b8; }
+        .type-chip { font-size:.72rem; background: var(--bg-cream); border:1px solid var(--line); border-radius: 12px; padding: 2px 8px; color: var(--muted); }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notifications (shows the result of the last save) -->
+    <div class="toast-container">
+        <div id="resultToast" class="toast align-items-center text-white @(Model.Error != null ? "bg-danger" : "bg-success") border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">@(Model.Error ?? Model.Message)</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>RROMS Admin</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageRestaurant">Manage Restaurant</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/AdminPanel/ManageMenu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" title="Coming soon">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <h1 class="page-title">Menu Management</h1>
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="menuTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(Model.Tab == "items" ? "active" : "")" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab">Menu Items (@Model.Items.Count)</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(Model.Tab == "categories" ? "active" : "")" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button" role="tab">Categories (@Model.Categories.Count)</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="menuTabsContent">
+
+            <!-- ================= MENU ITEMS TAB ================= -->
+            <div class="tab-pane fade @(Model.Tab == "items" ? "show active" : "")" id="items" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">All Menu Items</h5>
+                        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#itemModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> Add Menu Item</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="itemTable">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Items.Any())
+                                {
+                                    <tr><td colspan="5" class="text-muted text-center">No menu items yet.</td></tr>
+                                }
+                                @foreach (var i in Model.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                @if (!string.IsNullOrEmpty(i.ImageUrl))
+                                                {
+                                                    <img src="@i.ImageUrl" class="item-thumb" alt="@i.Name" style="@(i.IsAvailable ? "" : "filter: grayscale(100%);")">
+                                                }
+                                                else
+                                                {
+                                                    <div class="item-thumb placeholder"><i class="fa-regular fa-image"></i></div>
+                                                }
+                                                <div>
+                                                    <div class="fw-bold @(i.IsAvailable ? "" : "text-muted")">@i.Name <span class="type-chip ms-1">@i.ItemType</span></div>
+                                                    <div class="text-muted small">@i.Description</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@i.MenuCategory?.Name</td>
+                                        <td class="fw-bold">RM @i.Price.ToString("N2")</td>
+                                        <td>
+                                            @if (i.IsAvailable)
+                                            {
+                                                <span class="status-badge badge-available">Available</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status-badge badge-soldout">Sold Out</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#itemModal"
+                                                    data-id="@i.Id" data-name="@i.Name" data-description="@i.Description"
+                                                    data-price="@(i.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))"
+                                                    data-category="@i.MenuCategoryId" data-image="@i.ImageUrl"
+                                                    data-available="@(i.IsAvailable ? "true" : "false")" data-type="@i.ItemType">
+                                                <i class="fa-solid fa-pen"></i> Edit
+                                            </button>
+                                            <form method="post" asp-page-handler="ToggleItem" asp-route-id="@i.Id" asp-route-available="@(!i.IsAvailable)" class="d-inline">
+                                                @if (i.IsAvailable)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-quiet-danger btn-action"><i class="fa-solid fa-ban"></i> Mark Sold Out</button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success btn-action"><i class="fa-solid fa-check"></i> Mark Available</button>
+                                                }
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= CATEGORIES TAB ================= -->
+            <div class="tab-pane fade @(Model.Tab == "categories" ? "show active" : "")" id="categories" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">Menu Categories</h5>
+                        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#categoryModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> Add Category</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="categoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Category Name</th>
+                                    <th>Description</th>
+                                    <th>Items</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Categories.Any())
+                                {
+                                    <tr><td colspan="4" class="text-muted text-center">No categories yet. Add one first.</td></tr>
+                                }
+                                @foreach (var c in Model.Categories)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@c.Name</td>
+                                        <td class="text-muted">@(c.Description ?? "-")</td>
+                                        <td>@c.MenuItems.Count</td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#categoryModal"
+                                                    data-id="@c.Id" data-name="@c.Name" data-description="@c.Description">
+                                                <i class="fa-solid fa-pen"></i> Edit
+                                            </button>
+                                            <form method="post" asp-page-handler="DeleteCategory" asp-route-id="@c.Id" class="d-inline"
+                                                  onsubmit="return confirm('Delete this category?');">
+                                                <button type="submit" class="btn btn-sm btn-quiet-danger btn-action"><i class="fa-solid fa-trash"></i> Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ADD/EDIT ITEM MODAL -->
+    <div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="itemModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Add Menu Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveItem" id="itemForm">
+                        <input type="hidden" name="item.Id" id="itemId" value="0" />
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label" for="itemName">Item Name</label>
+                                <input type="text" class="form-control" name="item.Name" id="itemName" placeholder="e.g., Spaghetti Carbonara" maxlength="100" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="itemPrice">Price (RM)</label>
+                                <input type="number" step="0.01" min="0.01" max="10000" class="form-control" name="item.Price" id="itemPrice" placeholder="0.00" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="itemCategory">Category</label>
+                                <select class="form-select" name="item.CategoryId" id="itemCategory" required>
+                                    <option value="">Select Category...</option>
+                                    @foreach (var c in Model.Categories)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="itemType">Type</label>
+                                <select class="form-select" name="item.ItemType" id="itemType">
+                                    <option value="@MenuItemType.Food">Food</option>
+                                    <option value="@MenuItemType.Beverage">Beverage</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="itemImage">Image URL</label>
+                                <input type="url" class="form-control" name="item.ImageUrl" id="itemImage" placeholder="https://...">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="itemDesc">Description</label>
+                                <textarea class="form-control" name="item.Description" id="itemDesc" rows="2" maxlength="500" placeholder="Brief description of the dish..."></textarea>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="item.IsAvailable" value="true" id="itemAvailable" checked>
+                                    <label class="form-check-label fw-semibold" for="itemAvailable">Item is Available (In Stock)</label>
+                                </div>
+                                <div class="form-text">Changing a price only affects new orders. Past orders keep the price that was paid.</div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Item</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT CATEGORY MODAL -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="categoryModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Add New Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveCategory" id="categoryForm">
+                        <input type="hidden" name="category.Id" id="catId" value="0" />
+                        <div class="mb-3">
+                            <label class="form-label" for="catName">Category Name</label>
+                            <input type="text" class="form-control" name="category.Name" id="catName" placeholder="e.g., Zuppa (Soups)" maxlength="50" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label" for="catDesc">Description</label>
+                            <textarea class="form-control" name="category.Description" id="catDesc" rows="2" maxlength="250" placeholder="Brief description..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Category</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Fill the item modal for Add (id 0) or Edit (values from the clicked button)
+        document.getElementById('itemModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            document.getElementById('itemModalTitle').innerText = editing ? 'Edit Menu Item' : 'Add Menu Item';
+            document.getElementById('itemId').value = editing ? b.id : 0;
+            document.getElementById('itemName').value = editing ? (b.name || '') : '';
+            document.getElementById('itemDesc').value = editing ? (b.description || '') : '';
+            document.getElementById('itemPrice').value = editing ? b.price : '';
+            document.getElementById('itemCategory').value = editing ? b.category : '';
+            document.getElementById('itemImage').value = editing ? (b.image || '') : '';
+            document.getElementById('itemType').value = editing ? b.type : 'Food';
+            document.getElementById('itemAvailable').checked = editing ? b.available === 'true' : true;
+        });
+
+        // Same for the category modal
+        document.getElementById('categoryModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            document.getElementById('categoryModalTitle').innerText = editing ? 'Edit Category' : 'Add New Category';
+            document.getElementById('catId').value = editing ? b.id : 0;
+            document.getElementById('catName').value = editing ? (b.name || '') : '';
+            document.getElementById('catDesc').value = editing ? (b.description || '') : '';
+        });
+
+        // Show the result of the last action as a toast
+        @if (Model.Message != null || Model.Error != null)
+        {
+            <text>new bootstrap.Toast(document.getElementById('resultToast')).show();</text>
+        }
+    </script>
+</body>
+</html>

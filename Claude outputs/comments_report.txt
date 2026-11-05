@@ -1,0 +1,572 @@
+TOTAL COMMENTS: 467
+
+=== Areas/Identity/Pages/Account/Login.cshtml (3) ===
+  63: /* Texture Overlay */
+ 184: <!-- LEFT SIDE: Branding -->
+ 193: <!-- RIGHT SIDE: Form -->
+
+=== Areas/Identity/Pages/Account/Login.cshtml.cs (37) ===
+  13: // CS2 - CUSTOMER login page.
+  14: // Placing this file at Areas/Identity/Pages/Account/Login overrides the built-in Identity login page.
+  15: // Admin and Staff use the separate Staff Portal (StaffLogin page).
+  16: //
+  17: // Two ways to log in:
+  18: //   1. Email + password
+  19: //   2. Google / Facebook / Microsoft
+  44: // Survives a redirect, used to show errors from the Google/Facebook callback
+  67: // Someone tried to open an Admin/Staff page while logged out -> send them to the Staff Portal
+  75: // Already logged in? Go straight to the right dashboard.
+  82: // Clear any leftover external login cookie
+  88: // ---------------------------------------------------------------
+  89: // 1. EMAIL + PASSWORD LOGIN (all roles)
+  90: // ---------------------------------------------------------------
+ 100: // Same message for "no such user" and "wrong password" so attackers
+ 101: // can't find out which emails are registered.
+ 108: // Admin and Staff must use the Staff Portal
+ 121: // lockoutOnFailure: true -> account locks after 5 wrong attempts (set in Program.cs)
+ 143: // ---------------------------------------------------------------
+ 144: // 2a. GOOGLE / FACEBOOK - send the user to the provider's sign-in page
+ 145: // ---------------------------------------------------------------
+ 148: // Only providers whose keys are configured in Program.cs are registered
+ 161: // ---------------------------------------------------------------
+ 162: // 2b. GOOGLE / FACEBOOK - the provider sends the user back here
+ 163: // ---------------------------------------------------------------
+ 173: // A) This Google/Facebook account was linked before -> sign in directly
+ 193: // B) First time with this Google/Facebook account -> we need their email
+ 200: // Staff / Admin emails are never allowed to use social login
+ 208: // C) Customer already registered with this email -> link the provider to that account
+ 215: // D) Brand new person -> create a Customer account (no password needed)
+ 220: // the provider already verified it
+ 237: // Remember this Google/Facebook account for next time
+ 246: // ---------------------------------------------------------------
+ 247: // Helpers
+ 248: // ---------------------------------------------------------------
+ 257: // If they were sent here from a protected page, go back to it
+ 264: // POLYMORPHISM: the actual subclass of the logged-in user decides where they go.
+
+=== Areas/Identity/Pages/Account/Register.cshtml (3) ===
+  63: /* Texture Overlay */
+ 151: <!-- LEFT SIDE: Branding -->
+ 160: <!-- RIGHT SIDE: Form -->
+
+=== Areas/Identity/Pages/Account/Register.cshtml.cs (8) ===
+  11: // CS1 - public registration. Always creates a CUSTOMER.
+  12: // Staff and Admin accounts cannot be created here (AD8: admin creates staff).
+  63: // A bool must be exactly true to pass
+  77: // Anyone already logged in (Admin, Staff or Customer) cannot register another account
+  84: // Create the SUBCLASS, not the abstract base
+  93: // Identity hashes the password and enforces the password rules
+ 100: // Show one friendly message for duplicate email instead of two
+ 109: // CS19-22: first in-system notification
+
+=== Areas/Identity/Pages/Account/StaffLogin.cshtml (3) ===
+  63: /* Texture Overlay */
+ 184: <!-- LEFT SIDE: Branding -->
+ 193: <!-- RIGHT SIDE: Form -->
+
+=== Areas/Identity/Pages/Account/StaffLogin.cshtml.cs (4) ===
+  11: // AD1, RS1 - Staff Portal login: Admin and Staff ONLY.
+  12: // Email + password only. No Google/Facebook/Microsoft, no registration link.
+  13: // Customers use the separate customer Login page.
+  77: // Only Admin and Staff subclasses may use this page
+
+=== Data/ApplicationDbContext.cs (12) ===
+   7: // REPLACES the ApplicationDbContext that Visual Studio generated in /Data.
+   8: // Inherits IdentityDbContext so the AspNetUsers / AspNetRoles tables are included.
+  16: // Each subclass gets its own DbSet, but they all live in AspNetUsers (TPH)
+  38: // must stay first - configures Identity tables
+  40: // INHERITANCE: Table-Per-Hierarchy with a "UserType" column
+  49: // Store enums as readable text in SQL Server instead of numbers
+  61: // Unique constraints
+  66: // Index that speeds up the availability check
+  69: // One-to-one Order <-> Payment
+  82: // SQL Server rejects "multiple cascade paths", so everything that points
+  83: // back to a user / reservation / menu item uses Restrict (no auto-delete).
+  84: // Records like orders and payments should never silently disappear anyway.
+
+=== Data/DbSeeder.cs (11) ===
+   7: // Runs once at startup: creates the 3 roles, a default admin and some sample data.
+  19: // 1. Roles
+  26: // 2. Default accounts - one of each subclass (change passwords before demo!)
+  43: // 3. Restaurant settings
+  55: // 4. Operating hours: 11:00 - 22:00 every day
+  69: // 5. Dining areas + tables
+  83: // 6. Menu (Italian menu from the frontend design).
+  84: //    Runs on a new database, and once on an older database that still has
+  85: //    the original sample items without photos (only if no orders exist yet).
+ 130: // Accepts ANY subclass of ApplicationUser (polymorphism) and
+ 131: // assigns the Identity role that the subclass reports via RoleName.
+
+=== Models/ApplicationUser.cs (14) ===
+   7: // BASE CLASS (abstract - you can never create a plain "ApplicationUser").
+   8: // Inherits IdentityUser, which already gives: Id, UserName, Email, PasswordHash, PhoneNumber.
+   9: // All three user types share these fields; each subclass adds its own.
+  10: //
+  11: // EF Core stores all subclasses in ONE table (AspNetUsers) using
+  12: // "Table-Per-Hierarchy" (TPH). A "UserType" discriminator column says which subclass a row is.
+  25: // POLYMORPHISM: each subclass returns its own role name.
+  26: // Used when assigning the Identity role and for display.
+  31: // Registers through the public Register page.
+  36: // e.g. "vegetarian, window seat"
+  49: // Created by an Admin (no self-registration).
+  54: // e.g. "EMP001"
+  57: // Waiter, Cashier, Chef, Manager
+  65: // Seeded at startup / created by another Admin (no self-registration).
+
+=== Models/Enums.cs (5) ===
+   5: // customer booked, waiting for staff
+   6: // staff confirmed
+   7: // customer arrived
+  15: // placed, not yet accepted by kitchen
+  23: // CS10 / CS11 - food vs beverage orders
+
+=== Models/FeedbackAndNotification.cs (3) ===
+   5: // Customer 3h - rating for a completed dining experience
+  29: // Customer 3i, Advanced 5 - in-system notifications
+  47: // e.g. "/Customer/Orders/Details?id=5"
+
+=== Models/Menu.cs (4) ===
+   6: // Admin 1b - e.g. "Appetisers", "Mains", "Drinks"
+  22: // Admin 1d, Customer 3c
+  47: // Simple tags used by the recommendation system, e.g. "spicy,vegetarian,chicken"
+  58: // Admin 1d - promotional offers. MenuItemId null = applies to whole order.
+
+=== Models/Order.cs (6) ===
+   6: // Customer 3e, Staff 2d/2e
+  12: // e.g. "ORD-20261102-0012"
+  18: // Optional: order linked to a table booking
+  48: // One line in an order
+  62: // Price copied at time of ordering, so later price changes don't alter old orders
+  67: // e.g. "no onion"
+
+=== Models/Payment.cs (3) ===
+   6: // Staff 2f, Customer 3f, Intermediate 3/4 (receipts, payment tracking)
+  11: // one payment per order
+  27: // from the (simulated) payment gateway
+
+=== Models/Reservation.cs (4) ===
+   5: // Customer 3d, Staff 2b/2c
+  10: // Human-friendly code shown on the confirmation, e.g. "RSV-20261102-0007"
+  24: // StartTime + RestaurantSetting.ReservationDurationMinutes.
+  25: // Two reservations clash on the same table if: newStart < existingEnd && newEnd > existingStart
+
+=== Models/Restaurant.cs (8) ===
+   5: // Single-row table holding general restaurant settings (Admin 1b, 1g)
+  22: // How long one reservation blocks a table, used for availability checking
+  30: // Admin 1b - operating hours, one row per day of week
+  44: // Admin 1b - dining areas, e.g. "Main Hall", "Outdoor", "VIP Room"
+  55: // Photo shown on the booking page and admin list
+  63: // Admin 1b - physical tables
+  70: // e.g. "A1"
+  83: // Admin 1g - announcements / promotional campaigns shown to customers
+
+=== Pages/AdminPanel/Index.cshtml.cs (2) ===
+   8: // Presentation tier only: asks the service layer for data, never queries the database.
+   9: // Access restricted to the Administrator role in Program.cs.
+
+=== Pages/AdminPanel/ManageMenu.cshtml (20) ===
+  26: /* Navbar */
+  32: /* Page Header */
+  35: /* Tabs */
+  41: /* Cards */
+  44: /* Tables */
+  49: /* Thumbnails */
+  52: /* Buttons */
+  62: /* Forms & Inputs */
+  68: /* Status Badge */
+  73: /* Toast Container */
+  81: <!-- Toast Notifications (shows the result of the last save) -->
+  91: <!-- Navbar -->
+ 118: <!-- Tabs Navigation -->
+ 130: <!-- ================= MENU ITEMS TAB ================= -->
+ 212: <!-- ================= CATEGORIES TAB ================= -->
+ 262: <!-- ADD/EDIT ITEM MODAL -->
+ 325: <!-- ADD/EDIT CATEGORY MODAL -->
+ 356: // Fill the item modal for Add (id 0) or Edit (values from the clicked button)
+ 371: // Same for the category modal
+ 381: // Show the result of the last action as a toast
+
+=== Pages/AdminPanel/ManageMenu.cshtml.cs (4) ===
+   9: // AD3 (categories), AD4 (items), AD5 (pricing and availability).
+  10: // Admin-only (AdminPanel folder is locked to the Administrator role in Program.cs).
+  54: // ---------- Items ----------
+  68: // ---------- Categories ----------
+
+=== Pages/AdminPanel/ManageRestaurant.cshtml (18) ===
+  25: /* Navbar */
+  31: /* Page Header */
+  34: /* Tabs */
+  40: /* Cards */
+  43: /* Tables */
+  48: /* Table Image Thumbnail */
+  57: /* Buttons */
+  67: /* Forms & Inputs */
+  73: /* Status Badge */
+  82: <!-- Navbar -->
+ 124: <!-- Tabs Navigation -->
+ 139: <!-- 1. DINING AREAS TAB -->
+ 198: <!-- 2. TABLES TAB -->
+ 263: <!-- 3. OPENING HOURS TAB -->
+ 306: <!-- ADD/EDIT DINING AREA MODAL -->
+ 340: <!-- ADD/EDIT TABLE MODAL -->
+ 385: // Fill the area modal for Add (id 0) or Edit (data- attributes from the clicked button)
+ 396: // Same idea for the table modal
+
+=== Pages/AdminPanel/ManageRestaurant.cshtml.cs (8) ===
+   8: // AD2 / Admin b - dining areas, tables and opening hours.
+   9: // Admin-only (AdminPanel folder is locked to the Administrator role in Program.cs).
+  26: // re-opens the tab the admin was on
+  28: // Form shapes (one per form, so each handler only binds its own fields)
+  62: // ---------- Dining areas ----------
+  75: // ---------- Tables ----------
+  88: // ---------- Opening hours ----------
+ 101: // Post/Redirect/Get with a success or error message
+
+=== Pages/CustomerPanel/BookTable.cshtml (13) ===
+   7: // Fallback photos when an area has no image yet
+  37: /* Navbar */
+  43: /* Header Form */
+  54: /* Hero Banner */
+  65: /* Table Cards */
+  86: /* Checkmark overlay when selected */
+ 131: /* Floating Action Bar */
+ 180: <!-- Hero -->
+ 190: <!-- Search Bar (Overlapping Hero) - a normal GET form, so results can be bookmarked/refreshed -->
+ 240: <!-- Table Grid: only FREE tables that fit the party are listed -->
+ 266: <!-- Floating Action Bar (Appears when a table is selected) - this is the booking POST form -->
+ 289: <!-- Success Modal (shown after a successful booking) -->
+ 329: // Show the confirmation after a successful booking
+
+=== Pages/CustomerPanel/BookTable.cshtml.cs (8) ===
+   9: // CS7 (make) and CS8 (modify, via ?editId=) - customer picks date/time/guests,
+  10: // the system shows ONLY tables that are free (Intermediate #1), customer picks one.
+  22: // Search values (kept in the URL so "Check availability" is a normal GET)
+  35: // when modifying, highlights the existing table
+  37: // Confirmation modal (filled after a successful booking)
+  50: // Modifying: pre-fill the form from the existing booking (only your own)
+  90: // All rules (opening hours, party size, double-booking) are checked in the service
+ 109: // Post/Redirect/Get - refreshing won't book twice
+
+=== Pages/CustomerPanel/Index.cshtml.cs (2) ===
+   8: // Presentation tier only: asks the service layer for data, never queries the database.
+   9: // Access restricted to the Customer role in Program.cs.
+
+=== Pages/CustomerPanel/Menu.cshtml (19) ===
+  29: /* Navbar */
+  35: /* Cart Button in Navbar */
+  58: /* Header */
+  63: /* Filters */
+  80: /* Food Cards */
+ 141: /* Cart Offcanvas */
+ 163: <!-- Navbar -->
+ 178: <!-- Cart Button -->
+ 196: <!-- Header -->
+ 210: <!-- Filters (one button per category in the database) -->
+ 224: <!-- Menu Grid -->
+ 271: <!-- Shopping Cart Offcanvas -->
+ 289: <!-- Checkout = a real POST form. Only item IDs + quantities are sent. -->
+ 339: <!-- Order placed modal -->
+ 363: // --- 1. Category filtering ---
+ 375: // --- 2. Cart (kept in sessionStorage so it survives page reloads) ---
+ 451: // Only IDs and quantities go to the server
+ 469: // Booking link only makes sense for dine-in
+ 478: // After a successful order: clear the cart and show the confirmation
+
+=== Pages/CustomerPanel/Menu.cshtml.cs (5) ===
+  11: // CS5, CS6 (browse menu) and CS10, CS11 (place food & beverage orders).
+  12: // The cart lives in the browser while browsing; on "Place Order" only item IDs and
+  13: // quantities are sent. Prices, promotions and tax are recalculated on the server.
+  43: // Dine-in orders can be linked to one of the customer's upcoming bookings
+  68: // Basic sanity checks on what the browser sent
+
+=== Pages/CustomerPanel/MyReservations.cshtml (13) ===
+  15: // Upcoming first (soonest at top), then past (most recent at top)
+  38: /* Navbar */
+  44: /* Header */
+  51: /* Filter tabs */
+  58: /* Reservation card */
+  79: /* Image Thumbnail Styling */
+  96: /* Status badges */
+ 106: /* Left accent per status */
+ 115: /* Buttons */
+ 127: /* Responsive adjustments */
+ 254: <!-- Cancel confirmation -->
+ 281: // Counts on each tab
+ 305: // Put the reservation code and id in the cancel dialog
+
+=== Pages/CustomerPanel/MyReservations.cshtml.cs (3) ===
+   9: // CS9 (cancel), CS12 (history), CS15 (status). Customers only see THEIR OWN bookings.
+  34: // Passing the customer ID makes the service refuse other people's bookings
+  44: // ---- Helpers used by the page ----
+
+=== Pages/Profile.cshtml (19) ===
+   5: // page has its own navbar and Bootstrap, like Login/Register
+   7: // Initials for the avatar (first letter of up to two words)
+  23: <!-- Bootstrap 5 & FontAwesome -->
+  41: /* Navbar */
+  47: /* Page heading */
+  51: /* Cards */
+  54: /* Summary card */
+  75: /* Form */
+  89: /* Password strength */
+  94: /* Buttons */
+ 111: <!-- Dashboard Navbar -->
+ 120: <!-- Change these links based on Role in your actual code -->
+ 124: <!-- Logout must be a POST (protected by the anti-forgery token) -->
+ 148: <!-- LEFT: Summary -->
+ 165: <!-- RIGHT: Edit form -->
+ 271: // Only these fields count as "editable" for the unsaved-changes check
+ 313: // Show / hide password
+ 324: // Auto-dismiss the success message
+ 328: // Warn before leaving with unsaved edits (not when submitting)
+
+=== Pages/Profile.cshtml.cs (11) ===
+  12: // CS3, CS4, RS2, RS3 - one profile page for all logged-in users (Admin, Staff, Customer).
+  13: // Presentation tier only: all rules live in IProfileService.
+  33: // Display-only values for the summary card
+  50: // Shown read-only. Never saved from the form.
+  81: // The user ID ALWAYS comes from the login cookie, never from the form (prevents editing someone else)
+  94: // 1. Personal details. Customer-only fields this page doesn't edit are passed through unchanged.
+ 109: // 2. Password (only if the user typed a new one)
+ 122: // Keep the user logged in after the security stamp changes
+ 131: // Post/Redirect/Get: refreshing the page won't resubmit the form
+ 135: // Loads the read-only summary values (used by both GET and POST)
+ 144: // always from the database, not the form
+
+=== Pages/StaffPanel/Index.cshtml.cs (2) ===
+   8: // Presentation tier only: asks the service layer for data, never queries the database.
+   9: // Access restricted to Staff (and Admin) in Program.cs.
+
+=== Program.cs (11) ===
+  10: // Database
+  17: // Identity with our ApplicationUser + roles
+  22: // secure login: lock after 5 wrong tries
+  24: // one account per email
+  29: // External logins (Google / Facebook / Microsoft). Keys live in User Secrets, NOT in source code.
+  30: // A provider is only switched on if its keys exist, so the app still runs without them.
+  68: // Role-based access: whole folders locked to a role
+  83: // Session - stores the shopping cart between page visits
+  93: // Business logic services, registered by interface (one instance per web request).
+  94: // Pages ask for the interface (e.g. IOrderService); DI supplies the implementation.
+ 127: // Create roles, default accounts and sample data
+
+=== Services/CartService.cs (6) ===
+   6: // One line in the shopping cart (stored in the user's session, not the database,
+   7: // so an abandoned cart never becomes a fake order).
+  10: // CS10 / CS11 - shopping cart kept in the session until the customer places the order.
+  11: // Approach: cart kept in ASP.NET Core session state as JSON, following Microsoft Learn
+  12: // "Session and state management in ASP.NET Core" (non-critical, temporary data only).
+  60: // Quantity 0 removes the item
+
+=== Services/DashboardService.cs (3) ===
+   8: // Data shapes returned to the dashboard pages (simple DTOs, no database access)
+  18: // Business tier for the Admin / Staff / Customer dashboards (3-tier architecture:
+  19: // Razor Page -> DashboardService -> ApplicationDbContext -> SQL Server).
+
+=== Services/Interfaces/ICartService.cs (1) ===
+   3: // Abstraction for the session-based shopping cart (CS10, CS11).
+
+=== Services/Interfaces/IDashboardService.cs (2) ===
+   5: // Abstraction for the three role dashboards. Keeps database queries out of the
+   6: // Razor Pages so the presentation tier never talks to the data tier directly.
+
+=== Services/Interfaces/IMenuService.cs (7) ===
+   5: // CS5, CS6 - digital menu for customers.
+   6: // AD3, AD4, AD5 - admin manages categories, items, prices and availability.
+   9: // Categories in display order, each with its items (available and sold out)
+  12: // Categories (AD3)
+  13: // id 0 = add
+  16: // Items, pricing, availability (AD4, AD5)
+  18: // id 0 = add
+
+=== Services/Interfaces/INotificationService.cs (3) ===
+   5: // Abstraction for in-system notifications (CS19-CS22).
+   6: // Pages and other services depend on this interface, not on the concrete class
+   7: // (Dependency Inversion Principle, as used in Microsoft's eShopOnWeb reference app).
+
+=== Services/Interfaces/IOrderService.cs (1) ===
+   5: // Abstraction for ordering and order processing (CS10, CS11, CS13, CS16, RS9-RS12).
+
+=== Services/Interfaces/IPaymentService.cs (3) ===
+   5: // Abstraction for payments and receipts (RS13, RS14, CS14, AD10).
+   6: // Because pages depend on this interface, the simulated gateway could later be
+   7: // replaced by a real one (e.g. Stripe) without changing any page code.
+
+=== Services/Interfaces/IProfileService.cs (3) ===
+   3: // CS3, CS4, RS2, RS3 - view and edit your OWN profile.
+   4: // userId always comes from the logged-in session, never from the form.
+  11: // for Google/Microsoft sign-ups
+
+=== Services/Interfaces/IReservationService.cs (1) ===
+   5: // Abstraction for table reservations and availability (CS7-CS9, RS4-RS8).
+
+=== Services/Interfaces/IRestaurantService.cs (6) ===
+   5: // AD2 / Admin b - manage dining areas, tables and opening hours.
+   8: // Dining areas
+  10: // id 0 = add
+  13: // Tables
+  15: // id 0 = add
+  18: // Opening hours (always 7 rows, Monday first)
+
+=== Services/MenuService.cs (13) ===
+   8: // CS5, CS6 - reads the digital menu for customers.
+   9: // AD3-AD5  - admin rules for the menu:
+  10: //  - category and item names are unique
+  11: //  - a category that still has items can't be deleted
+  12: //  - price must be between RM 0.01 and RM 10,000
+  13: //  - changing a price never changes old orders (OrderItem stores its own UnitPrice)
+  31: // Keep items in the order they were added
+  38: // ------------------------------------------------------------
+  39: // CATEGORIES
+  40: // ------------------------------------------------------------
+  84: // ------------------------------------------------------------
+  85: // ITEMS
+  86: // ------------------------------------------------------------
+
+=== Services/NotificationService.cs (9) ===
+   8: // CS19-CS22, Advanced #5 - in-system notifications.
+   9: // Other services call this whenever something happens to a customer's
+  10: // reservation, order or payment.
+  11: // Approach: a dedicated service that other services call to record notifications,
+  12: // registered through dependency injection (pattern from Microsoft eShopOnWeb).
+  22: // Adds a notification to the context. It is saved together with the caller's
+  23: // own SaveChangesAsync(), so the notification and the change succeed or fail together.
+  37: // Adds and saves immediately.
+  45: // CS21 - promotion broadcast to every active customer
+
+=== Services/OrderService.cs (29) ===
+   8: // A priced line, used for the cart page and the order summary
+  16: // item-level promotion
+  22: // Full price breakdown of a cart, BEFORE it becomes an order
+  26: // e.g. "Cendol is no longer available"
+  36: // CS10, CS11, CS13, CS16, RS9-RS12, AD9
+  37: // Approach: domain service that turns a basket into an order and freezes item prices,
+  38: // similar in structure to BasketService/OrderService in Microsoft's eShopOnWeb.
+  50: // RS12 - allowed order status changes (state machine)
+  64: // ------------------------------------------------------------
+  65: // PRICING - prices ALWAYS come from the database, never from the browser
+  66: // ------------------------------------------------------------
+  78: // Load active promotions, then check dates in memory
+ 101: // Best item-level promotion for this item
+ 123: // Best whole-order promotion (MenuItemId == null) on what is left
+ 144: // ------------------------------------------------------------
+ 145: // CUSTOMER ACTIONS
+ 146: // ------------------------------------------------------------
+ 148: // CS10 / CS11 - turn the cart into an order
+ 191: // price frozen at time of order
+ 205: // Customer may cancel only before the kitchen starts
+ 216: // ------------------------------------------------------------
+ 217: // STAFF ACTIONS
+ 218: // ------------------------------------------------------------
+ 220: // RS10-RS12 - move an order through its statuses
+ 250: // ------------------------------------------------------------
+ 251: // QUERIES
+ 252: // ------------------------------------------------------------
+ 262: // CS13 - customer's order history
+ 271: // RS9 - kitchen / staff board: everything not finished yet, oldest first
+
+=== Services/PaymentService.cs (13) ===
+   8: // RS13, RS14, CS14, CS22, AD10, Intermediate #3 (receipts) and #4 (online payment + tracking)
+   9: // Approach: payment logic behind an interface so the simulated gateway can be swapped
+  10: // for a real provider later (Dependency Inversion, as in eShopOnWeb).
+  16: // 1 loyalty point per RM 1 spent
+  25: // CS - online payment by the customer.
+  26: // SIMULATED gateway: no real card is charged. A real system would call
+  27: // Stripe / iPay88 / Billplz here and use their transaction reference.
+  46: // RS13 - staff records a payment (e.g. cash at the counter) or changes its status
+  67: // Pending / Failed / Refunded
+  99: // Loyalty points for the customer
+ 113: // Receipt page data (Intermediate #3)
+ 120: // CS14 - customer's payment records
+ 128: // AD10 - admin monitoring, optional date filter
+
+=== Services/ProfileService.cs (24) ===
+   8: // CS3, CS4, RS2, RS3 - business logic for viewing and editing your own profile.
+   9: // Uses Identity's UserManager to load and save users (no direct SQL).
+  22: // ------------------------------------------------------------
+  23: // VIEW (CS3, RS2)
+  24: // ------------------------------------------------------------
+  30: // Fields every user has (from the ApplicationUser base class)
+  41: // POLYMORPHISM: add the extra fields of the actual subclass
+  64: // ------------------------------------------------------------
+  65: // EDIT (CS4, RS3)
+  66: // ------------------------------------------------------------
+  75: // Fields every role may change
+  79: // Customer-only fields. Staff/Admin values are ignored even if sent.
+  88: // Email, role, loyalty points, employee ID, position are NEVER changed here.
+  95: // ------------------------------------------------------------
+  96: // PASSWORD
+  97: // ------------------------------------------------------------
+ 104: // Normal users: must know their current password
+ 110: // Identity checks the current password AND the password rules from Program.cs
+ 117: // Google/Microsoft/Facebook sign-ups have no password yet
+ 132: // ------------------------------------------------------------
+ 133: // VALIDATION (server-side, so it can't be skipped by the browser)
+ 134: // ------------------------------------------------------------
+ 156: // birthday not reached yet this year
+ 162: // no errors
+
+=== Services/ProfileUser.cs (4) ===
+  12: // Customer specific class elements
+  17: // Staff specific class elements
+  22: // Admin specific class elements
+  38: // Only applied when the user is a Customer
+
+=== Services/ReservationService.cs (33) ===
+   8: // CS7-CS9, RS4-RS8, Intermediate #1 (automated availability checking + validation)
+   9: // Approaches used (adapted, not copied):
+  10: //  - Interval overlap test "startA < endB && endA > startB" (half-open ranges),
+  11: //    the standard booking-system check (Stack Overflow Q325933).
+  12: //  - Allowed status changes kept in a transition table, similar in idea to the
+  13: //    "Permit" configuration of the Stateless state-machine library.
+  14: //  - Result objects instead of exceptions for business-rule failures (Result pattern, Ardalis.Result).
+  26: // Reservations in these statuses occupy a table
+  32: // Which status changes are allowed (state machine)
+  55: // ------------------------------------------------------------
+  56: // VALIDATION
+  57: // ------------------------------------------------------------
+  59: // Returns an error message, or null if the time slot is acceptable.
+  89: // Two bookings overlap if: newStart < existingEnd AND newEnd > existingStart
+  97: // All active tables big enough and free for the whole slot, smallest first
+ 120: // ------------------------------------------------------------
+ 121: // CUSTOMER ACTIONS
+ 122: // ------------------------------------------------------------
+ 124: // CS7 - make a reservation. If no table is chosen, the smallest suitable free table is assigned.
+ 164: // CS8 / RS7 - modify. Pass customerId when a customer edits (checks ownership and
+ 165: // resets status to Pending); pass null when staff edits.
+ 188: // Keep the current table if it still fits and is free, otherwise find another one
+ 202: // A customer change needs to be re-confirmed by staff
+ 215: // CS9 / RS8 - cancel. Pass customerId for a customer cancellation (ownership check).
+ 227: // ------------------------------------------------------------
+ 228: // STAFF ACTIONS
+ 229: // ------------------------------------------------------------
+ 231: // RS6 confirm, seat, complete, no-show, cancel - all go through the state machine
+ 259: // RS4 - daily view for staff
+ 268: // CS12 / RS17 - history
+ 276: // ------------------------------------------------------------
+ 277: // HELPERS
+ 278: // ------------------------------------------------------------
+
+=== Services/RestaurantService.cs (17) ===
+   8: // AD2 / Admin b - business rules for the restaurant layout:
+   9: //  - table numbers are unique
+  10: //  - an area with tables can't be deleted (deactivate the tables or move them first)
+  11: //  - a table with upcoming bookings can't be deactivated (would strand customers)
+  12: //  - closing time must be after opening time
+  27: // ------------------------------------------------------------
+  28: // DINING AREAS
+  29: // ------------------------------------------------------------
+  79: // ------------------------------------------------------------
+  80: // TABLES
+  81: // ------------------------------------------------------------
+ 118: // Shrinking a table must not break bookings that already need more seats
+ 155: // ------------------------------------------------------------
+ 156: // OPENING HOURS
+ 157: // ------------------------------------------------------------
+ 162: // Make sure all 7 days exist (default 11:00 - 22:00)
+ 169: // Monday first, Sunday last
+
+=== Services/ServiceResult.cs (3) ===
+   3: // Every service method returns a ServiceResult instead of throwing exceptions
+   4: // for normal business-rule failures (e.g. "table already booked").
+   5: // Pages check .Success and show .Error to the user.

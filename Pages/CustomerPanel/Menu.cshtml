@@ -286,13 +286,13 @@
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="offcanvas">Browse Menu</button>
             </div>
 
-            <!-- Checkout = a real POST form. Only item IDs + quantities are sent. -->
-            <form method="post" asp-page-handler="PlaceOrder" class="cart-total-section d-none" id="checkoutSection">
-                <input type="hidden" name="cartJson" id="cartJson" />
+            <!-- Goes to the Checkout page. Only item IDs + quantities are sent. -->
+            <form method="post" asp-page="/CustomerPanel/Checkout" asp-page-handler="Review" class="cart-total-section d-none" id="checkoutSection">
+                <input type="hidden" name="CartJson" id="cartJson" />
 
                 <div class="mb-2">
                     <label class="form-label small fw-semibold mb-1" for="orderType">Order type</label>
-                    <select class="form-select form-select-sm" name="orderType" id="orderType">
+                    <select class="form-select form-select-sm" name="OrderType" id="orderType">
                         <option value="@OrderType.DineIn">Dine-in</option>
                         <option value="@OrderType.Takeaway">Takeaway</option>
                     </select>
@@ -301,7 +301,7 @@
                 {
                     <div class="mb-2" id="reservationWrap">
                         <label class="form-label small fw-semibold mb-1" for="reservationId">For my booking (optional)</label>
-                        <select class="form-select form-select-sm" name="reservationId" id="reservationId">
+                        <select class="form-select form-select-sm" name="ReservationId" id="reservationId">
                             <option value="">No booking</option>
                             @foreach (var r in Model.ActiveReservations)
                             {
@@ -312,7 +312,7 @@
                 }
                 <div class="mb-3">
                     <label class="form-label small fw-semibold mb-1" for="orderNotes">Notes for the kitchen (optional)</label>
-                    <input type="text" class="form-control form-control-sm" name="notes" id="orderNotes" maxlength="500" placeholder="e.g. no onion, extra spicy">
+                    <input type="text" class="form-control form-control-sm" name="Notes" id="orderNotes" maxlength="500" placeholder="e.g. no onion, extra spicy">
                 </div>
 
                 <div class="d-flex justify-content-between mb-2">
@@ -330,7 +330,7 @@
                 </div>
                 <p class="small text-muted mb-3">Any active promotions are applied when you place the order.</p>
                 <button type="submit" class="btn-checkout">
-                    Place Order <i class="fa-solid fa-arrow-right ms-2"></i>
+                    Checkout <i class="fa-solid fa-arrow-right ms-2"></i>
                 </button>
             </form>
         </div>

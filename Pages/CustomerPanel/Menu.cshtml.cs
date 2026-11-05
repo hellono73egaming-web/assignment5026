@@ -1,28 +1,24 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WebApplication2.Models;
-using WebApplication2.Services;
 using WebApplication2.Services.Interfaces;
 
 namespace WebApplication2.Pages.CustomerPanel
 {
-    // CS5, CS6 (browse menu) and CS10, CS11 (place food & beverage orders).
-    // The cart lives in the browser while browsing; on "Place Order" only item IDs and
-    // quantities are sent. Prices, promotions and tax are recalculated on the server.
+    // CS5, CS6 (browse menu) and CS10, CS11 (add food & beverages to the cart).
+    // The cart lives in the browser while browsing; "Checkout" sends only item IDs and
+    // quantities to the Checkout page, which recalculates prices on the server.
     public class MenuModel : PageModel
     {
         private readonly IMenuService _menu;
-        private readonly IOrderService _orders;
         private readonly IReservationService _reservations;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public MenuModel(IMenuService menu, IOrderService orders, IReservationService reservations,
+        public MenuModel(IMenuService menu, IReservationService reservations,
                          UserManager<ApplicationUser> userManager)
         {
             _menu = menu;
-            _orders = orders;
             _reservations = reservations;
             _userManager = userManager;
         }
@@ -49,46 +45,5 @@ namespace WebApplication2.Pages.CustomerPanel
                 .ToList();
         }
 
-        public async Task<IActionResult> OnPostPlaceOrderAsync(string cartJson, OrderType orderType,
-                                                               int? reservationId, string? notes)
-        {
-            var userId = _userManager.GetUserId(User)!;
-
-            List<CartLine>? lines;
-            try
-            {
-                lines = JsonSerializer.Deserialize<List<CartLine>>(cartJson ?? "[]",
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch (JsonException)
-            {
-                lines = null;
-            }
-
-            // Basic sanity checks on what the browser sent
-            lines = lines?
-                .Where(l => l.MenuItemId > 0 && l.Quantity > 0)
-                .Select(l => l with { Quantity = Math.Min(l.Quantity, CartService.MaxQuantityPerItem), Remarks = null })
-                .ToList();
-
-            if (lines == null || lines.Count == 0)
-            {
-                Error = "Your cart is empty.";
-                return RedirectToPage();
-            }
-
-            if (orderType == OrderType.Takeaway) reservationId = null;
-
-            var result = await _orders.PlaceOrderAsync(userId, lines, orderType, reservationId, notes);
-            if (!result.Success)
-            {
-                Error = result.Error;
-                return RedirectToPage();
-            }
-
-            PlacedOrderNumber = result.Value!.OrderNumber;
-            PlacedOrderTotal = result.Value.Total.ToString("N2");
-            return RedirectToPage();
-        }
     }
 }
