@@ -101,6 +101,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IRestaurantService, RestaurantService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
 var app = builder.Build();
 

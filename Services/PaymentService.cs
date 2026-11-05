@@ -110,6 +110,63 @@ namespace WebApplication2.Services
             return payment;
         }
 
+        // RS13 - staff settles a bill at the counter.
+        // A served order that is paid is finished, so it moves to Completed.
+        public async Task<ServiceResult<Payment>> SettleBillAsync(int orderId, PaymentMethod method)
+        {
+            var result = await RecordPaymentAsync(orderId, method, PaymentStatus.Paid,
+                                                  $"Counter-{DateTime.Now:yyyyMMddHHmmss}");
+            if (!result.Success) return result;
+
+            var order = await _db.Orders.FindAsync(orderId);
+            if (order != null && order.Status == OrderStatus.Served)
+            {
+                order.Status = OrderStatus.Completed;
+                order.UpdatedAt = DateTime.Now;
+                await _db.SaveChangesAsync();
+            }
+
+            return result;
+        }
+
+        // RS14 - lower an unpaid bill (complaint, manager discount...). A reason is required
+        // and recorded on the order, so every adjustment can be traced later.
+        public async Task<ServiceResult> AdjustBillAsync(int orderId, decimal newTotal, string reason)
+        {
+            reason = reason?.Trim() ?? string.Empty;
+            if (reason.Length < 3)
+                return ServiceResult.Fail("Please give a reason for the adjustment.");
+            if (reason.Length > 150)
+                return ServiceResult.Fail("Reason can be at most 150 characters.");
+
+            var order = await _db.Orders.Include(o => o.Payment).FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null) return ServiceResult.Fail("Order not found.");
+            if (order.Status == OrderStatus.Cancelled) return ServiceResult.Fail("This order was cancelled.");
+            if (order.Payment?.Status == PaymentStatus.Paid) return ServiceResult.Fail("This bill is already paid and can't be changed.");
+
+            newTotal = Math.Round(newTotal, 2);
+            if (newTotal <= 0) return ServiceResult.Fail("The new total must be more than RM 0.00.");
+            if (newTotal >= order.Total) return ServiceResult.Fail("A bill can only be adjusted downwards.");
+
+            var oldTotal = order.Total;
+            order.Discount += oldTotal - newTotal;
+            order.Total = newTotal;
+            order.UpdatedAt = DateTime.Now;
+
+            var note = $"[Bill adjusted RM {oldTotal:N2} -> RM {newTotal:N2}: {reason}]";
+            var notes = string.IsNullOrWhiteSpace(order.Notes) ? note : $"{order.Notes} {note}";
+            order.Notes = notes.Length > 500 ? notes[^500..] : notes;   // column limit
+
+            if (order.Payment != null) order.Payment.Amount = newTotal;
+
+            _notifications.Queue(order.CustomerId, "Bill updated",
+                $"The bill for order {order.OrderNumber} was adjusted to RM {newTotal:N2} ({reason}).",
+                NotificationType.Payment);
+
+            await _db.SaveChangesAsync();
+            return ServiceResult.Ok();
+        }
+
         // Receipt page data (Intermediate #3)
         public Task<Payment?> GetReceiptAsync(int orderId) =>
             _db.Payments

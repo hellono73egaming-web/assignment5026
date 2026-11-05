@@ -10,6 +10,8 @@ namespace WebApplication2.Services.Interfaces
         Task<ServiceResult<Payment>> PayOnlineAsync(int orderId, string customerId, PaymentMethod method);
         Task<ServiceResult<Payment>> RecordPaymentAsync(int orderId, PaymentMethod method,
                                                         PaymentStatus status, string? reference = null);
+        Task<ServiceResult<Payment>> SettleBillAsync(int orderId, PaymentMethod method);      // RS13: staff takes payment
+        Task<ServiceResult> AdjustBillAsync(int orderId, decimal newTotal, string reason);      // RS14: manager adjustment
         Task<Payment?> GetReceiptAsync(int orderId);
         Task<List<Payment>> GetForCustomerAsync(string customerId);
         Task<List<Payment>> GetAllAsync(DateTime? from = null, DateTime? to = null);

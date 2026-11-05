@@ -1,0 +1,459 @@
+﻿@page
+@model WebApplication2.Pages.StaffPanel.BillingModel
+@using WebApplication2.Models
+@using WebApplication2.Services
+@using WebApplication2.Pages.StaffPanel
+@{
+    ViewData["Title"] = "Billing & Payments";
+    Layout = null;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing & Payments - RROMS Staff</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); min-height: 100vh; }
+        
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); margin: 40px 0 10px; }
+        .page-sub { color: var(--muted); margin-bottom: 30px; }
+
+        /* Card & Table Styling */
+        .content-card { background: #fff; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 5px 20px rgba(0,0,0,0.03); padding: 25px; }
+        .table th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); padding: 15px; }
+        .table td { padding: 15px; vertical-align: middle; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+        
+        /* Status Badges */
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge-unpaid { background: #fdf0d5; color: #8a5a0b; }
+        .badge-paid { background: #e3f3e7; color: #1d6b34; }
+
+        /* =========================================
+           IMPROVED BUTTON STYLES
+           ========================================= */
+        .action-group { display: flex; justify-content: flex-end; gap: 8px; }
+        
+        .btn-custom { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            transition: all 0.2s ease-in-out; 
+            border: 1px solid transparent;
+        }
+
+        /* Secondary Action: View Bill */
+        .btn-view-bill { 
+            background-color: #fff; 
+            color: var(--muted); 
+            border-color: #ddd; 
+        }
+        .btn-view-bill:hover { 
+            background-color: #f8f9fa; 
+            color: var(--text-dark); 
+            border-color: #ccc; 
+        }
+        
+        /* Warning Action: Edit Bill */
+        .btn-edit-bill { 
+            background-color: #fff; 
+            color: #dc3545; 
+            border-color: #f5c6cb; 
+        }
+        .btn-edit-bill:hover { 
+            background-color: #fbeceb; 
+            color: #a02e24; 
+            border-color: #f5c2c7; 
+        }
+
+        /* Primary Action: Settle */
+        .btn-pay { 
+            background-color: var(--accent-gold); 
+            color: var(--primary-green); 
+            box-shadow: 0 4px 6px rgba(212, 163, 115, 0.3); 
+        }
+        .btn-pay:hover { 
+            background-color: var(--gold-dark); 
+            color: #fff; 
+            box-shadow: 0 6px 10px rgba(185, 133, 80, 0.4); 
+            transform: translateY(-1px);
+        }
+
+        /* Completed Action: View Receipt */
+        .btn-view-receipt { 
+            background-color: #e3f3e7; 
+            color: #1d6b34; 
+            border-color: #c3e6cb;
+        }
+        .btn-view-receipt:hover { 
+            background-color: #d1ebd7; 
+            color: #145a2b; 
+        }
+
+        /* Toast Container */
+        .toast-container { position: fixed; top: 80px; right: 20px; z-index: 1055; }
+
+        /* Receipt Modal Styling */
+        .receipt-container { font-family: 'Courier Prime', monospace; background: #fff; color: #000; padding: 30px; border-radius: 4px; border: 1px solid #ddd; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        .receipt-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
+        .receipt-header h3 { font-family: 'Playfair Display', serif; font-weight: 700; margin: 0; font-size: 1.8rem; }
+        .receipt-item { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
+        .receipt-totals { border-top: 2px dashed #000; padding-top: 15px; margin-top: 15px; }
+        .receipt-footer { text-align: center; border-top: 2px dashed #000; padding-top: 15px; margin-top: 15px; font-size: 0.8rem; }
+        
+        /* Stamps */
+        .stamp { display: inline-block; font-weight: 700; font-size: 1.2rem; transform: rotate(-5deg); border-radius: 4px; margin-bottom: 10px; padding: 5px 15px; border: 2px solid; }
+        .stamp-paid { color: #1d6b34; border-color: #1d6b34; }
+        .stamp-unpaid { color: #d97706; border-color: #d97706; }
+            .pay-method-btn.active { background: #f1eee7 !important; border-color: var(--primary-green) !important; color: var(--primary-green) !important; }
+        .btn-gold { background-color: var(--accent-gold); color: var(--primary-green); font-weight: 700; border-radius: 10px; border: none; }
+        .btn-gold:hover:not(:disabled) { background-color: var(--gold-dark); color: #fff; }
+        @@media print { body * { visibility: hidden; } .modal.show .receipt-container, .modal.show .receipt-container * { visibility: visible; } .modal.show .receipt-container { position: absolute; top: 0; left: 0; right: 0; box-shadow: none; border: 0; } }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container">
+        <div id="actionToast" class="toast align-items-center text-white @(Model.Error != null ? "bg-danger" : "bg-success") border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">@(Model.Error ?? Model.Message)</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" asp-page="/StaffPanel/Index"><i class="fa-solid fa-utensils me-2"></i>RROMS Staff</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/StaffPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/StaffPanel/Reservations">Today's Reservations</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/StaffPanel/ActiveOrders">Active Orders</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/StaffPanel/Billing">Billing</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <h2 class="page-title">Billing &amp; Payments</h2>
+        <p class="page-sub">Review bills, make adjustments, and process payments. Unpaid bills are listed first, then bills paid today.</p>
+
+        <div class="content-card">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th>Order ID</th>
+                            <th>Items Summary</th>
+                            <th>Total Amount</th>
+                            <th>Payment Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Bills.Any())
+                        {
+                            <tr><td colspan="6" class="text-center text-muted py-4">No open bills.</td></tr>
+                        }
+                        @foreach (var o in Model.Bills)
+                        {
+                            var paid = BillingModel.IsPaid(o);
+                            <tr>
+                                <td><span class="badge bg-dark fs-6">@BillingModel.TableLabel(o)</span></td>
+                                <td class="fw-bold">#@o.OrderNumber<div class="small text-muted fw-normal">@o.Customer?.FullName &middot; @OrderService.FriendlyStatus(o.Status)</div></td>
+                                <td class="text-muted small">@string.Join(", ", o.OrderItems.Select(i => $"{i.Quantity}x {i.MenuItem?.Name}"))</td>
+                                <td class="fw-bold" style="color: var(--primary-green);">RM @o.Total.ToString("N2")</td>
+                                <td>
+                                    @if (paid)
+                                    {
+                                        <span class="status-badge badge-paid">Paid</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-unpaid">Unpaid</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="action-group">
+                                        @if (paid)
+                                        {
+                                            <button type="button" class="btn-custom btn-view-receipt" data-bs-toggle="modal" data-bs-target="#receipt-@o.Id">
+                                                <i class="fa-solid fa-receipt"></i> Receipt
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn-custom btn-view-bill" data-bs-toggle="modal" data-bs-target="#receipt-@o.Id">
+                                                <i class="fa-regular fa-file-lines"></i> View
+                                            </button>
+                                            <button type="button" class="btn-custom btn-edit-bill" data-bs-toggle="modal" data-bs-target="#editBillModal"
+                                                    data-id="@o.Id" data-number="@o.OrderNumber" data-table="@BillingModel.TableLabel(o)"
+                                                    data-total="@o.Total.ToString("0.00", inv)">
+                                                <i class="fa-solid fa-pen"></i> Edit
+                                            </button>
+                                            <button type="button" class="btn-custom btn-pay" data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                                    data-id="@o.Id" data-number="@o.OrderNumber" data-table="@BillingModel.TableLabel(o)"
+                                                    data-total="@o.Total.ToString("N2")">
+                                                <i class="fa-solid fa-cash-register"></i> Settle
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Bill Modal -->
+    <div class="modal fade" id="editBillModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Adjust Bill</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" asp-page-handler="Adjust" class="modal-body p-4">
+                    <input type="hidden" name="id" id="editId" />
+                    <input type="hidden" name="orderNumber" id="editNumber" />
+                    <div class="alert alert-warning small border-warning" style="border-radius: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i> Adjusting a bill will update the receipt. Please ensure a manager has authorized this.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Original Total (Table <span id="editTableNum"></span>)</label>
+                        <h4 class="fw-bold text-muted text-decoration-line-through">RM <span id="editOldTotal"></span></h4>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" for="editNewTotal">New Total (RM)</label>
+                        <input type="number" class="form-control form-control-lg" name="newTotal" id="editNewTotal" step="0.01" min="0.01" placeholder="0.00" required>
+                        <div class="form-text">Bills can only be adjusted downwards.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="editReasonSelect">Reason for Adjustment <span class="text-danger">*</span></label>
+                        <select class="form-select mb-2" name="reason" id="editReasonSelect" required>
+                            <option value="">Select a reason...</option>
+                            <option value="Customer Complaint">Customer Complaint (Comp)</option>
+                            <option value="Manager Discount">Manager Discount</option>
+                            <option value="Item Out of Stock">Item Out of Stock</option>
+                            <option value="Promo Applied">Promo Code Applied</option>
+                            <option value="Other">Other (Type below)</option>
+                        </select>
+                        <input type="text" class="form-control" name="customReason" id="editReasonCustom" maxlength="150" placeholder="Type custom reason here..." style="display:none;">
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                        <button type="submit" class="btn-custom btn-pay">
+                            <i class="fa-solid fa-check me-1"></i> Apply Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settle Bill Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Settle Bill</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" asp-page-handler="Settle" class="modal-body p-4 text-center">
+                    <input type="hidden" name="id" id="payId" />
+                    <input type="hidden" name="orderNumber" id="payNumber" />
+                    <input type="hidden" name="method" id="payMethod" />
+                    <p class="text-muted mb-1">Amount Due for <span id="payTable" class="fw-bold text-dark"></span></p>
+                    <h1 class="fw-bold mb-4" style="color: var(--accent-gold);">RM <span id="payAmount"></span></h1>
+
+                    <div class="d-flex gap-3 mb-4">
+                        <button type="button" class="btn btn-outline-dark w-50 py-3 pay-method-btn" data-method="@PaymentMethod.Cash">
+                            <i class="fa-solid fa-money-bill-wave fs-3 mb-2 d-block"></i> Cash
+                        </button>
+                        <button type="button" class="btn btn-outline-dark w-50 py-3 pay-method-btn" data-method="@PaymentMethod.Card">
+                            <i class="fa-solid fa-credit-card fs-3 mb-2 d-block"></i> Card
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn btn-gold w-100 py-3" id="confirmPayBtn" disabled>
+                        Confirm Payment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- One receipt/bill per order -->
+    @foreach (var o in Model.Bills)
+    {
+        var paid = BillingModel.IsPaid(o);
+        <div class="modal fade" id="receipt-@o.Id" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 20px; border: none; background: transparent;">
+                    <div class="modal-body p-0">
+                        <div class="receipt-container">
+                            <div class="receipt-header">
+                                <h3>@Model.Settings.RestaurantName.ToUpper()</h3>
+                                @if (!string.IsNullOrEmpty(Model.Settings.Address)) { <p>@Model.Settings.Address</p> }
+                                <div class="mt-3"><div class="stamp @(paid ? "stamp-paid" : "stamp-unpaid")">@(paid ? "PAID" : "UNPAID")</div></div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2" style="font-size: 0.85rem;">
+                                <span>Date: @o.CreatedAt.ToString("MMM dd, yyyy")</span>
+                                <span>Time: @o.CreatedAt.ToString("h:mm tt")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-4" style="font-size: 0.85rem;">
+                                <span>Order: #@o.OrderNumber</span>
+                                <span>Table: @BillingModel.TableLabel(o)</span>
+                            </div>
+
+                            @foreach (var oi in o.OrderItems)
+                            {
+                                <div class="receipt-item">
+                                    <span>@(oi.Quantity)x @oi.MenuItem?.Name</span>
+                                    <span>RM @oi.LineTotal.ToString("N2")</span>
+                                </div>
+                            }
+
+                            <div class="receipt-totals">
+                                <div class="receipt-item"><span>Subtotal</span><span>RM @o.Subtotal.ToString("N2")</span></div>
+                                @if (o.Discount > 0)
+                                {
+                                    <div class="receipt-item"><span>Discount</span><span>- RM @o.Discount.ToString("N2")</span></div>
+                                }
+                                <div class="receipt-item"><span>Tax</span><span>RM @o.Tax.ToString("N2")</span></div>
+                                <div class="receipt-item fw-bold mt-2" style="font-size: 1.1rem;">
+                                    <span>TOTAL</span>
+                                    <span>RM @o.Total.ToString("N2")</span>
+                                </div>
+                            </div>
+                            <div class="receipt-footer">
+                                @if (paid)
+                                {
+                                    <p class="mb-1">Paid via: @BillingModel.Friendly(o.Payment!.Method)</p>
+                                    <p class="mb-1">Receipt: @o.Payment.ReceiptNumber</p>
+                                    <p class="mb-1">@o.Payment.PaidAt?.ToString("dd MMM yyyy, h:mm tt")</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-1"><strong>Status: Awaiting Payment</strong></p>
+                                }
+                                <p class="mt-3 mb-0">Grazie! Come back soon.</p>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            @if (paid)
+                            {
+                                <button type="button" class="btn btn-gold" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Print Receipt</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                        data-id="@o.Id" data-number="@o.OrderNumber" data-table="@BillingModel.TableLabel(o)" data-total="@o.Total.ToString("N2")">
+                                    <i class="fa-solid fa-arrow-right me-2"></i> Proceed to Settle
+                                </button>
+                            }
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Edit bill modal ---
+        document.getElementById('editBillModal').addEventListener('show.bs.modal', e => {
+            const d = e.relatedTarget.dataset;
+            document.getElementById('editId').value = d.id;
+            document.getElementById('editNumber').value = d.number;
+            document.getElementById('editTableNum').textContent = d.table;
+            document.getElementById('editOldTotal').textContent = parseFloat(d.total).toFixed(2);
+            const newTotal = document.getElementById('editNewTotal');
+            newTotal.value = parseFloat(d.total).toFixed(2);
+            newTotal.max = (parseFloat(d.total) - 0.01).toFixed(2);
+            document.getElementById('editReasonSelect').value = '';
+            const custom = document.getElementById('editReasonCustom');
+            custom.style.display = 'none'; custom.required = false; custom.value = '';
+        });
+
+        document.getElementById('editReasonSelect').addEventListener('change', function () {
+            const custom = document.getElementById('editReasonCustom');
+            const other = this.value === 'Other';
+            custom.style.display = other ? 'block' : 'none';
+            custom.required = other;
+        });
+
+        // --- Settle modal ---
+        document.getElementById('paymentModal').addEventListener('show.bs.modal', e => {
+            const d = e.relatedTarget.dataset;
+            document.getElementById('payId').value = d.id;
+            document.getElementById('payNumber').value = d.number;
+            document.getElementById('payTable').textContent = d.table === 'Takeaway' || d.table === 'Dine-in' ? d.table : 'Table ' + d.table;
+            document.getElementById('payAmount').textContent = d.total;
+            document.getElementById('payMethod').value = '';
+            document.getElementById('confirmPayBtn').disabled = true;
+            document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('active'));
+            // close any open receipt modal underneath
+            document.querySelectorAll('.modal.show').forEach(m => { if (m.id !== 'paymentModal') bootstrap.Modal.getInstance(m)?.hide(); });
+        });
+
+        document.querySelectorAll('.pay-method-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('payMethod').value = btn.dataset.method;
+                document.getElementById('confirmPayBtn').disabled = false;
+            });
+        });
+
+        @if (Model.Message != null || Model.Error != null)
+        {
+            <text>new bootstrap.Toast(document.getElementById('actionToast')).show();</text>
+        }
+    </script>
+</body>
+</html>

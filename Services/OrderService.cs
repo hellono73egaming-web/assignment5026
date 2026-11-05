@@ -280,6 +280,23 @@ namespace WebApplication2.Services
                .OrderBy(o => o.CreatedAt)
                .ToListAsync();
 
+        // RS13/RS14 - billing screen: every unpaid (non-cancelled) order, plus orders paid today
+        public Task<List<Order>> GetBillingListAsync()
+        {
+            var today = DateTime.Today;
+            return _db.Orders
+               .Include(o => o.Customer)
+               .Include(o => o.Reservation).ThenInclude(r => r!.RestaurantTable)
+               .Include(o => o.OrderItems).ThenInclude(i => i.MenuItem)
+               .Include(o => o.Payment)
+               .Where(o => o.Status != OrderStatus.Cancelled
+                           && (o.Payment == null || o.Payment.Status != PaymentStatus.Paid
+                               || o.Payment.PaidAt >= today))
+               .OrderBy(o => o.Payment != null && o.Payment.Status == PaymentStatus.Paid)   // unpaid first
+               .ThenBy(o => o.CreatedAt)
+               .ToListAsync();
+        }
+
         public static string FriendlyStatus(OrderStatus status) => status switch
         {
             OrderStatus.ReadyToServe => "Ready to Serve",
