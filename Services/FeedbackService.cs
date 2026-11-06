@@ -63,5 +63,12 @@ namespace WebApplication2.Services {
             }
             return await _db.Feedbacks.AverageAsync(f => f.Rating);
         }
+
+        // CS17 - the customer's own reviews, newest first
+        public Task<List<Feedback>> GetForCustomerAsync(string customerId) =>
+            _db.Feedbacks
+               .Where(f => f.CustomerId == customerId)
+               .OrderByDescending(f => f.CreatedAt)
+               .ToListAsync();
     }
 }

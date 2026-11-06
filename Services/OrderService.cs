@@ -266,6 +266,7 @@ namespace WebApplication2.Services
             _db.Orders
                .Include(o => o.OrderItems).ThenInclude(i => i.MenuItem)
                .Include(o => o.Payment)
+               .Include(o => o.Reservation).ThenInclude(r => r!.RestaurantTable)
                .Where(o => o.CustomerId == customerId)
                .OrderByDescending(o => o.CreatedAt)
                .ToListAsync();
