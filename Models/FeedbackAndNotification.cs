@@ -24,6 +24,11 @@ namespace WebApplication2.Models
         public string? Comment { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // Review management: the restaurant's public reply to this review
+        [StringLength(500)]
+        public string? AdminReply { get; set; }
+        public DateTime? RepliedAt { get; set; }
     }
 
     // Customer 3i, Advanced 5 - in-system notifications

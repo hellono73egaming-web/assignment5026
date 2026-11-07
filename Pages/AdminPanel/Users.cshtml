@@ -1,0 +1,435 @@
+﻿@page
+@model WebApplication2.Pages.AdminPanel.UsersModel
+@using WebApplication2.Services
+@using WebApplication2.Pages.AdminPanel
+@{
+    ViewData["Title"] = "User Management";
+    Layout = null;
+    var avatarColours = new[] { "var(--primary-green)", "var(--accent-gold)", "#0dcaf0", "#6c757d" };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Artie's Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
+
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; transition: color .2s; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2rem; margin: 40px 0 24px; }
+
+        /* Tabs */
+        .nav-tabs { border-bottom: 2px solid var(--line); margin-bottom: 24px; }
+        .nav-tabs .nav-link { border: none; color: var(--muted); font-weight: 600; font-size: 1.05rem; padding: 12px 20px; transition: color .2s; }
+        .nav-tabs .nav-link:hover { color: var(--primary-green); }
+        .nav-tabs .nav-link.active { color: var(--primary-green); border-bottom: 3px solid var(--accent-gold); background: transparent; }
+
+        /* Cards */
+        .content-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,.02); }
+        
+        /* Tables */
+        .table { margin-bottom: 0; }
+        .table th { color: var(--muted); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); padding: 16px; }
+        .table td { padding: 16px; vertical-align: middle; border-bottom: 1px solid var(--line); }
+        
+        /* Avatar */
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-green); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; }
+
+        /* Buttons */
+        .btn-gold { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; border: 0; border-radius: 10px; padding: 10px 22px; transition: background .2s; }
+        .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+        
+        .btn-action { padding: 6px 10px; border-radius: 8px; font-weight: 600; font-size: .8rem; }
+        .btn-outline-green { border: 1.5px solid var(--primary-green); color: var(--primary-green); }
+        .btn-outline-green:hover { background: var(--primary-green); color: #fff; }
+        .btn-quiet-danger { border: 1.5px solid #dc3545; color: #dc3545; }
+        .btn-quiet-danger:hover { background: #dc3545; color: #fff; }
+        .btn-outline-success { border: 1.5px solid #198754; color: #198754; }
+        .btn-outline-success:hover { background: #198754; color: #fff; }
+        .btn-outline-warning { border: 1.5px solid #ffc107; color: #8a5a0b; }
+        .btn-outline-warning:hover { background: #ffc107; color: #000; }
+
+        /* Forms & Inputs */
+        .form-control, .form-select { border-radius: 10px; padding: 10px 15px; border-color: var(--line); }
+        .form-control:focus, .form-select:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 0.25rem rgba(212,163,115,.25); }
+        .form-label { font-weight: 600; color: var(--text-dark); font-size: .9rem; }
+
+        /* Status Badge */
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 600; text-transform: uppercase; }
+        .badge-active { background: #e3f3e7; color: #1d6b34; }
+        .badge-suspended { background: #fbeceb; color: #a02e24; }
+        .badge-role { background: #def3f8; color: #0b6679; }
+
+        /* Toast */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1055; }
+    </style>
+</head>
+<body>
+
+    <!-- Toast -->
+    <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 1080;">
+        <div id="resultToast" class="toast align-items-center text-white @(Model.Error != null ? "bg-danger" : "bg-success") border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">@(Model.Error ?? Model.Message)</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>Artie's Admin</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageRestaurant">Restaurant</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageMenu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/AdminPanel/Users">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/MonitorOrders">Orders</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reviews">Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reports">Reports</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <h1 class="page-title">User Management</h1>
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="userTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" aria-selected="true">Customer Accounts</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff" type="button" role="tab" aria-selected="false">Staff Accounts</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="userTabsContent">
+
+            <!-- ================= CUSTOMERS TAB ================= -->
+            <div class="tab-pane fade show active" id="customers" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <h5 class="fw-bold mb-0">Registered Customers <span class="text-muted fw-normal small">(@Model.Customers.Count)</span></h5>
+                        <div class="input-group w-auto">
+                            <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search customers..." onkeyup="searchTable(this, 'customerTable')" aria-label="Search customers">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="customerTable">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Joined</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Customers.Any())
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted py-4">No customers yet.</td></tr>
+                                }
+                                @for (int i = 0; i < Model.Customers.Count; i++)
+                                {
+                                    var s = Model.Customers[i];
+                                    var u = s.Customer;
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="user-avatar" style="background: @(avatarColours[i % avatarColours.Length]);">@UsersModel.Initials(u.FullName)</div>
+                                                <div>
+                                                    <div class="fw-bold">@u.FullName</div>
+                                                    <div class="text-muted small">@u.Email</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@(u.PhoneNumber ?? "-")</td>
+                                        <td>@u.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                        <td><span class="status-badge @(u.IsActive ? "badge-active" : "badge-suspended")">@(u.IsActive ? "Active" : "Suspended")</span></td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1" title="View"
+                                                    data-bs-toggle="modal" data-bs-target="#viewCustomerModal"
+                                                    data-name="@u.FullName" data-initials="@UsersModel.Initials(u.FullName)" data-email="@u.Email"
+                                                    data-phone="@(u.PhoneNumber ?? "-")" data-joined="@u.CreatedAt.ToString("MMM dd, yyyy")"
+                                                    data-prefs="@(u.DiningPreferences ?? "-")" data-points="@u.LoyaltyPoints"
+                                                    data-orders="@s.Orders" data-spent="@s.Spent.ToString("N2")" data-bookings="@s.Bookings">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </button>
+                                        <form method="post" asp-page-handler="Toggle" class="d-inline">
+                                            <input type="hidden" name="id" value="@u.Id" />
+                                            <input type="hidden" name="name" value="@u.FullName" />
+                                            <input type="hidden" name="tab" value="customers" />
+                                            <input type="hidden" name="active" value="@(!u.IsActive ? "true" : "false")" />
+                                            @if (u.IsActive)
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-warning btn-action me-1" title="Suspend"
+                                                        onclick="return confirm('Suspend this account? They will not be able to log in.');"><i class="fa-solid fa-ban"></i> Suspend</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-success btn-action me-1" title="Re-activate"><i class="fa-solid fa-check"></i> Activate</button>
+                                            }
+                                        </form>
+                                        <form method="post" asp-page-handler="Delete" class="d-inline"
+                                              onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
+                                            <input type="hidden" name="id" value="@u.Id" />
+                                            <input type="hidden" name="name" value="@u.FullName" />
+                                            <input type="hidden" name="tab" value="customers" />
+                                            <button type="submit" class="btn btn-sm btn-quiet-danger btn-action" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                        </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= STAFF TAB ================= -->
+            <div class="tab-pane fade" id="staff" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <h5 class="fw-bold mb-0">Restaurant Staff <span class="text-muted fw-normal small">(@Model.StaffMembers.Count)</span></h5>
+                        <div class="d-flex gap-2">
+                            <div class="input-group w-auto">
+                                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0" placeholder="Search staff..." onkeyup="searchTable(this, 'staffTable')" aria-label="Search staff">
+                            </div>
+                            <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#staffModal"><i class="fa-solid fa-plus me-1"></i> Add Staff Account</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="staffTable">
+                            <thead>
+                                <tr>
+                                    <th>Staff Member</th>
+                                    <th>Role</th>
+                                    <th>Employee ID</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.StaffMembers.Any())
+                                {
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No staff accounts yet.</td></tr>
+                                }
+                                @foreach (var u in Model.StaffMembers)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="user-avatar" style="background: #0dcaf0; color: white;">@UsersModel.Initials(u.FullName)</div>
+                                                <div>
+                                                    <div class="fw-bold">@u.FullName</div>
+                                                    <div class="text-muted small">@u.Email</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="status-badge badge-role" style="@(u.Position == "Manager" ? "background: #fdf0d5; color: #8a5a0b;" : "")">@u.Position</span></td>
+                                        <td class="font-monospace small">@u.EmployeeId</td>
+                                        <td>@(u.PhoneNumber ?? "-")</td>
+                                        <td><span class="status-badge @(u.IsActive ? "badge-active" : "badge-suspended")">@(u.IsActive ? "Active" : "Suspended")</span></td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1" title="Edit"
+                                                    data-bs-toggle="modal" data-bs-target="#staffModal"
+                                                    data-id="@u.Id" data-name="@u.FullName" data-email="@u.Email"
+                                                    data-phone="@u.PhoneNumber" data-position="@u.Position">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                        <form method="post" asp-page-handler="Toggle" class="d-inline">
+                                            <input type="hidden" name="id" value="@u.Id" />
+                                            <input type="hidden" name="name" value="@u.FullName" />
+                                            <input type="hidden" name="tab" value="staff" />
+                                            <input type="hidden" name="active" value="@(!u.IsActive ? "true" : "false")" />
+                                            @if (u.IsActive)
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-warning btn-action me-1" title="Suspend"
+                                                        onclick="return confirm('Suspend this account? They will not be able to log in.');"><i class="fa-solid fa-ban"></i> Suspend</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-success btn-action me-1" title="Re-activate"><i class="fa-solid fa-check"></i> Activate</button>
+                                            }
+                                        </form>
+                                        <form method="post" asp-page-handler="Delete" class="d-inline"
+                                              onsubmit="return confirm('Permanently delete this account? This cannot be undone.');">
+                                            <input type="hidden" name="id" value="@u.Id" />
+                                            <input type="hidden" name="name" value="@u.FullName" />
+                                            <input type="hidden" name="tab" value="staff" />
+                                            <button type="submit" class="btn btn-sm btn-quiet-danger btn-action" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                        </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW CUSTOMER MODAL -->
+    <div class="modal fade" id="viewCustomerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Customer Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;" id="vcAvatar"></div>
+                    <h4 class="fw-bold mb-1" id="vcName"></h4>
+                    <p class="text-muted mb-4" id="vcEmail"></p>
+                    <div class="bg-light p-4 rounded text-start mb-2 border">
+                        <p class="mb-2 small"><strong><i class="fa-solid fa-phone me-2 text-muted"></i>Phone:</strong> <span id="vcPhone" class="float-end"></span></p>
+                        <p class="mb-2 small"><strong><i class="fa-solid fa-calendar me-2 text-muted"></i>Joined:</strong> <span id="vcJoined" class="float-end"></span></p>
+                        <p class="mb-2 small"><strong><i class="fa-solid fa-leaf me-2 text-muted"></i>Preferences:</strong> <span id="vcPrefs" class="float-end"></span></p>
+                        <hr class="my-2">
+                        <p class="mb-2 small"><strong><i class="fa-solid fa-receipt me-2 text-muted"></i>Total Orders:</strong> <span id="vcOrders" class="float-end fw-bold"></span></p>
+                        <p class="mb-2 small"><strong><i class="fa-solid fa-calendar-check me-2 text-muted"></i>Bookings:</strong> <span id="vcBookings" class="float-end fw-bold"></span></p>
+                        <p class="mb-2 small"><strong><i class="fa-solid fa-gift me-2 text-muted"></i>Loyalty Points:</strong> <span id="vcPoints" class="float-end fw-bold"></span></p>
+                        <p class="mb-0 small"><strong><i class="fa-solid fa-money-bill-wave me-2 text-muted"></i>Total Spent:</strong> <span id="vcSpent" class="float-end fw-bold text-success"></span></p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light w-100" data-bs-dismiss="modal" style="border-radius: 10px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT STAFF MODAL -->
+    <div class="modal fade" id="staffModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="staffModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Register New Staff</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveStaff" id="staffForm">
+                        <input type="hidden" name="id" id="staffId" />
+                        <div class="mb-3">
+                            <label class="form-label" for="staffName">Full Name</label>
+                            <input type="text" class="form-control" name="fullName" id="staffName" placeholder="e.g., Christopher Moltisanti" minlength="2" maxlength="100" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="staffEmail">Email Address</label>
+                            <input type="email" class="form-control" name="email" id="staffEmail" placeholder="name@arties.com" required>
+                            <div class="form-text d-none" id="emailNote">Email is the login name and can't be changed here.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="staffPhone">Phone Number</label>
+                            <input type="tel" class="form-control" name="phone" id="staffPhone" placeholder="+60 12-345 6789" maxlength="20">
+                        </div>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label" for="staffRole">Role</label>
+                                <select class="form-select" name="position" id="staffRole" required>
+                                    @foreach (var p in UserService.Positions)
+                                    {
+                                        <option value="@p">@p</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="passwordGroup">
+                                <label class="form-label" for="staffPass">Temporary Password</label>
+                                <input type="password" class="form-control" name="password" id="staffPass" minlength="8" autocomplete="new-password" placeholder="e.g. Welcome@123" required>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Account</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function searchTable(input, tableId) {
+            const filter = input.value.toLowerCase();
+            document.querySelectorAll('#' + tableId + ' tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        }
+
+        // Fill the customer details modal (textContent = safe from HTML injection)
+        document.getElementById('viewCustomerModal').addEventListener('show.bs.modal', e => {
+            const d = e.relatedTarget.dataset;
+            const set = (id, v) => document.getElementById(id).textContent = v;
+            set('vcAvatar', d.initials); set('vcName', d.name); set('vcEmail', d.email);
+            set('vcPhone', d.phone); set('vcJoined', d.joined); set('vcPrefs', d.prefs);
+            set('vcOrders', d.orders); set('vcBookings', d.bookings); set('vcPoints', d.points);
+            set('vcSpent', 'RM ' + d.spent);
+        });
+
+        // Add vs Edit staff: the edit button carries the staff member's data
+        document.getElementById('staffModal').addEventListener('show.bs.modal', e => {
+            const d = e.relatedTarget.dataset;
+            const editing = !!d.id;
+            document.getElementById('staffModalTitle').textContent = editing ? 'Edit Staff Account' : 'Register New Staff';
+            document.getElementById('staffId').value = d.id || '';
+            document.getElementById('staffName').value = d.name || '';
+            const email = document.getElementById('staffEmail');
+            email.value = d.email || '';
+            email.readOnly = editing;
+            document.getElementById('emailNote').classList.toggle('d-none', !editing);
+            document.getElementById('staffPhone').value = d.phone || '';
+            document.getElementById('staffRole').value = d.position || 'Waiter';
+            const pass = document.getElementById('staffPass');
+            pass.value = '';
+            pass.required = !editing;
+            document.getElementById('passwordGroup').classList.toggle('d-none', editing);
+        });
+
+        // Re-open the tab the admin was on before the page reloaded
+        @if (Model.Tab == "staff")
+        {
+            <text>bootstrap.Tab.getOrCreateInstance(document.getElementById('staff-tab')).show();</text>
+        }
+
+        @if (Model.Message != null || Model.Error != null)
+        {
+            <text>new bootstrap.Toast(document.getElementById('resultToast')).show();</text>
+        }
+    </script>
+</body>
+</html>

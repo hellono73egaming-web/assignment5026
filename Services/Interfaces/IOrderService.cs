@@ -14,6 +14,7 @@ namespace WebApplication2.Services.Interfaces
         Task<Order?> GetWithDetailsAsync(int orderId);
         Task<List<Order>> GetForCustomerAsync(string customerId);
         Task<List<Order>> GetActiveOrdersAsync();
-        Task<List<Order>> GetBillingListAsync();   // RS13/RS14: unpaid bills + bills paid today
+        Task<List<Order>> GetBillingListAsync();
+        Task<List<Order>> GetRecentAsync(int take = 100);   // AD5 - admin monitor   // RS13/RS14: unpaid bills + bills paid today
     }
 }

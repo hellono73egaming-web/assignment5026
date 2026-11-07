@@ -271,6 +271,16 @@ namespace WebApplication2.Services
                .OrderByDescending(o => o.CreatedAt)
                .ToListAsync();
 
+        // AD5 - admin live monitor: latest orders of any status
+        public Task<List<Order>> GetRecentAsync(int take = 100) =>
+            _db.Orders
+               .Include(o => o.Customer)
+               .Include(o => o.OrderItems).ThenInclude(i => i.MenuItem)
+               .Include(o => o.Reservation).ThenInclude(r => r!.RestaurantTable)
+               .OrderByDescending(o => o.CreatedAt)
+               .Take(take)
+               .ToListAsync();
+
         // RS9 - kitchen / staff board: everything not finished yet, oldest first
         public Task<List<Order>> GetActiveOrdersAsync() =>
             _db.Orders

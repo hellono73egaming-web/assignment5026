@@ -1,0 +1,272 @@
+﻿@page
+@model WebApplication2.Pages.AdminPanel.ReviewsModel
+@using WebApplication2.Pages.AdminPanel
+@{
+    ViewData["Title"] = "Customer Reviews";
+    Layout = null;
+    var total = Model.Reviews.Count;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Reviews - Artie's Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
+
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; transition: color .2s; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2rem; margin: 40px 0 24px; }
+
+        /* Top Analytics Row */
+        .analytics-card { background: #fff; border-radius: 16px; border: 1px solid var(--line); padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); height: 100%; }
+        .big-rating { font-size: 4rem; font-weight: 700; color: var(--primary-green); line-height: 1; }
+        .star-display { color: #ffc107; font-size: 1.2rem; margin-bottom: 10px; }
+        
+        /* Rating Progress Bars */
+        .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.85rem; }
+        .progress-row .stars-label { width: 50px; font-weight: 600; color: var(--muted); }
+        .progress { flex-grow: 1; height: 8px; background-color: #f0f0f0; border-radius: 10px; }
+        .progress-bar { background-color: var(--accent-gold); border-radius: 10px; }
+        .progress-row .count { width: 30px; text-align: right; color: var(--muted); font-weight: 600; }
+
+        /* Filters */
+        .filter-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+        .filter-btn { background: #fff; border: 1px solid var(--line); color: var(--muted); padding: 8px 20px; border-radius: 50px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+        .filter-btn:hover { border-color: var(--accent-gold); color: var(--text-dark); }
+        .filter-btn.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+
+        /* Review Items */
+        .content-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,.02); }
+        .review-item { border-bottom: 1px solid var(--line); padding-bottom: 25px; margin-bottom: 25px; }
+        .review-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+        
+        .review-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .customer-info { display: flex; align-items: center; gap: 15px; }
+        .avatar-circle { width: 48px; height: 48px; background-color: rgba(30, 63, 32, 0.08); color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; }
+        .customer-name { font-weight: 700; color: var(--text-dark); margin: 0; font-size: 1.05rem; }
+        .review-date { font-size: 0.8rem; color: var(--muted); }
+        
+        .stars { color: #ffc107; font-size: 1rem; margin-bottom: 5px; }
+        .review-comment { font-size: 0.95rem; color: #444; background: #fbfbfb; padding: 15px 20px; border-radius: 8px; border-left: 3px solid var(--accent-gold); margin-top: 10px; line-height: 1.5; }
+        
+        .order-ref { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 5px; }
+
+        /* Sentiment Badges */
+        .sentiment-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 10px; }
+        .sent-positive { background: #e3f3e7; color: #1d6b34; }
+        .sent-neutral { background: #fdf0d5; color: #8a5a0b; }
+        .sent-negative { background: #fbeceb; color: #a02e24; }
+
+        /* Reply Section */
+        .manager-reply { margin-top: 15px; margin-left: 40px; background: rgba(30, 63, 32, 0.03); padding: 15px; border-radius: 8px; border-left: 3px solid var(--primary-green); position: relative; }
+        .manager-reply::before { content: '\f3e5'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: -10px; left: 10px; background: #fff; color: var(--primary-green); padding: 0 5px; font-size: 0.9rem; }
+        .manager-reply-text { font-size: 0.85rem; color: #555; margin: 0; font-style: italic; }
+        
+        .btn-reply { font-size: 0.8rem; font-weight: 600; color: var(--primary-green); text-decoration: none; padding: 0; transition: 0.2s; }
+        .btn-reply:hover { color: var(--gold-dark); text-decoration: underline; }
+            .reply-form textarea { border-radius: 10px; font-size: .9rem; }
+        .btn-gold { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; border: 0; border-radius: 8px; padding: 6px 16px; }
+        .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+    </style>
+</head>
+<body>
+
+    <!-- Toast -->
+    <div class="toast-container" style="position: fixed; top: 80px; right: 20px; z-index: 1080;">
+        <div id="resultToast" class="toast align-items-center text-white @(Model.Error != null ? "bg-danger" : "bg-success") border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">@(Model.Error ?? Model.Message)</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>Artie's Admin</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageRestaurant">Restaurant</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageMenu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Users">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/MonitorOrders">Orders</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/AdminPanel/Reviews">Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reports">Reports</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <h1 class="page-title">Customer Feedback</h1>
+
+        <!-- Top Analytics Row -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="analytics-card text-center d-flex flex-column justify-content-center">
+                    <div class="big-rating">@Model.Average.ToString("0.0")</div>
+                    <div class="star-display mt-2" aria-label="@Model.Average.ToString("0.0") out of 5">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var icon = Model.Average >= i ? "fa-solid fa-star" : Model.Average >= i - 0.5 ? "fa-solid fa-star-half-stroke" : "fa-regular fa-star";
+                            <i class="@icon"></i>
+                        }
+                    </div>
+                    <div class="text-muted small fw-bold mt-2">Based on @total @(total == 1 ? "Review" : "Reviews")</div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="analytics-card">
+                    <h6 class="fw-bold mb-3">Rating Breakdown</h6>
+                    @for (int s = 5; s >= 1; s--)
+                    {
+                        var count = Model.CountByStar[s];
+                        var pct = total == 0 ? 0 : count * 100 / total;
+                        <div class="progress-row">
+                            <span class="stars-label">@s Star</span>
+                            <div class="progress"><div class="progress-bar" style="width: @(pct)%"></div></div>
+                            <span class="count">@count</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+            <div class="filter-pills mb-0">
+                <button type="button" class="filter-btn active" onclick="filterReviews('all', this)">All Reviews</button>
+                @for (int s = 5; s >= 1; s--)
+                {
+                    <button type="button" class="filter-btn" onclick="filterReviews('@s', this)">@s @(s == 1 ? "Star" : "Stars")</button>
+                }
+                <button type="button" class="filter-btn" onclick="filterReviews('unreplied', this)">Needs Reply</button>
+            </div>
+
+            <div style="width: 250px;">
+                <input type="text" class="form-control" id="searchFilter" placeholder="Search customer name..." onkeyup="applyFilters()" aria-label="Search customer name">
+            </div>
+        </div>
+
+        <!-- Reviews List -->
+        <div class="content-card">
+            @foreach (var r in Model.Reviews)
+            {
+                var (label, css) = ReviewsModel.Sentiment(r.Rating);
+                <div class="review-item review-row" data-rating="@r.Rating" data-replied="@(r.AdminReply != null ? "yes" : "no")">
+                    <div class="review-header">
+                        <div class="customer-info">
+                            <div class="avatar-circle">@ReviewsModel.Initials(r.Customer?.FullName)</div>
+                            <div>
+                                <p class="customer-name"><span class="name-text">@r.Customer?.FullName</span> <span class="sentiment-badge @css">@label</span></p>
+                                <span class="review-date"><i class="fa-regular fa-calendar me-1"></i> @r.CreatedAt.ToString("MMM dd, yyyy, h:mm tt")</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="stars" aria-label="@r.Rating out of 5 stars">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="@(i <= r.Rating ? "fa-solid" : "fa-regular") fa-star"></i>
+                                }
+                            </div>
+                            <span class="order-ref">Visit @r.Reservation?.ReservationCode @(r.Reservation?.RestaurantTable != null ? "· Table " + r.Reservation.RestaurantTable.TableNumber : "")</span>
+                        </div>
+                    </div>
+                    <div class="review-comment">
+                        "@(r.Comment ?? "No comment provided.")"
+                    </div>
+
+                    @if (r.AdminReply != null)
+                    {
+                        <div class="manager-reply">
+                            <p class="manager-reply-text"><strong>Admin Reply:</strong> @r.AdminReply</p>
+                            <small class="text-muted">@r.RepliedAt?.ToString("MMM dd, yyyy")</small>
+                        </div>
+                    }
+
+                    <div class="mt-2 text-end">
+                        <button type="button" class="btn btn-link btn-reply" data-bs-toggle="collapse" data-bs-target="#reply-@r.Id" aria-expanded="false">
+                            <i class="fa-solid fa-reply me-1"></i> @(r.AdminReply == null ? "Reply to Review" : "Edit Reply")
+                        </button>
+                    </div>
+                    <div class="collapse" id="reply-@r.Id">
+                        <form method="post" asp-page-handler="Reply" asp-route-id="@r.Id" class="reply-form mt-2">
+                            <textarea name="reply" class="form-control mb-2" rows="3" minlength="2" maxlength="500" required
+                                      placeholder="Write a reply to @r.Customer?.FullName..." aria-label="Reply">@r.AdminReply</textarea>
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-gold btn-sm"><i class="fa-solid fa-paper-plane me-1"></i> Post Reply</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <!-- Empty state -->
+            <div id="noResults" class="text-center py-5 @(Model.Reviews.Any() ? "d-none" : "")">
+                <i class="fa-solid fa-magnifying-glass fa-3x mb-3" style="color: #ddd;"></i>
+                <h5 class="text-muted">No reviews found</h5>
+                <p class="text-muted small">@(Model.Reviews.Any() ? "Try changing your filters." : "Reviews appear here after customers rate a completed visit.")</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentFilter = 'all';
+
+        function filterReviews(value, btn) {
+            currentFilter = value;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('searchFilter').value.toLowerCase();
+            let visible = 0;
+            document.querySelectorAll('.review-row').forEach(row => {
+                const matchesFilter = currentFilter === 'all'
+                    || (currentFilter === 'unreplied' ? row.dataset.replied === 'no' : row.dataset.rating === currentFilter);
+                const matchesSearch = row.querySelector('.name-text').textContent.toLowerCase().includes(search);
+                const show = matchesFilter && matchesSearch;
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            document.getElementById('noResults').classList.toggle('d-none', visible > 0);
+        }
+
+        @if (Model.Message != null || Model.Error != null)
+        {
+            <text>new bootstrap.Toast(document.getElementById('resultToast')).show();</text>
+        }
+    </script>
+</body>
+</html>

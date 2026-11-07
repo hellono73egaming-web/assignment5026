@@ -1,0 +1,322 @@
+﻿@page
+@model WebApplication2.Pages.AdminPanel.ReportsModel
+@using WebApplication2.Services
+@using WebApplication2.Pages.AdminPanel
+@{
+    ViewData["Title"] = "Reports";
+    Layout = null;
+    var r = Model.Report;
+    var kpis = new[]
+    {
+        ("Total Revenue", "RM " + r.Revenue.ToString("N2"), ReportsModel.Change(r.Revenue, r.PrevRevenue)),
+        ("Total Orders", r.Orders.ToString(), ReportsModel.Change(r.Orders, r.PrevOrders)),
+        ("Avg. Order Value", "RM " + r.AverageOrder.ToString("N2"), ReportsModel.Change(r.AverageOrder, r.PrevAverageOrder)),
+        ("Total Reservations", r.Reservations.ToString(), ReportsModel.Change(r.Reservations, r.PrevReservations))
+    };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Artie's Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
+
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; transition: color .2s; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2rem; margin: 40px 0 10px; }
+
+        /* Filter Bar */
+        .filter-bar { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,.02); border: 1px solid var(--line); margin-bottom: 30px; }
+        .form-control, .form-select { border-radius: 8px; border-color: var(--line); }
+        .form-control:focus, .form-select:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 0.25rem rgba(212,163,115,.25); }
+
+        /* Buttons */
+        .btn-gold { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; border: 0; border-radius: 8px; padding: 10px 20px; transition: background .2s; }
+        .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+        .btn-outline-green { border: 1.5px solid var(--primary-green); color: var(--primary-green); font-weight: 600; border-radius: 8px; }
+        .btn-outline-green:hover { background: var(--primary-green); color: #fff; }
+
+        /* KPI Cards */
+        .kpi-card { background: #fff; border-radius: 16px; padding: 25px; border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0,0,0,.02); text-align: center; }
+        .kpi-card h6 { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .kpi-card h2 { font-weight: 700; color: var(--primary-green); margin: 0 0 5px; }
+        .kpi-card small { font-weight: 600; }
+        .text-success { color: #198754 !important; }
+        .text-danger { color: #dc3545 !important; }
+
+        /* Chart Containers */
+        .chart-card { background: #fff; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0,0,0,.02); padding: 25px; height: 100%; }
+        .chart-card h5 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); margin-bottom: 20px; }
+
+        /* Data Table */
+        .table-card { background: #fff; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0,0,0,.02); padding: 25px; margin-top: 30px; }
+        .table th { color: var(--muted); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); }
+        .table td { vertical-align: middle; }
+            .util-bar { height: 6px; background: #f0f0f0; border-radius: 10px; min-width: 80px; }
+        .util-bar div { height: 6px; background: var(--primary-green); border-radius: 10px; }
+        @@media print { .navbar-custom, .filter-bar { display: none !important; } }
+    </style>
+</head>
+<body>
+
+    <!-- Admin Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>Artie's Admin</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageRestaurant">Restaurant</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageMenu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Users">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/MonitorOrders">Orders</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reviews">Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/AdminPanel/Reports">Reports</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 pb-5">
+        <h1 class="page-title">Business Analytics</h1>
+        <p class="text-muted mb-4">Generate and analyze your restaurant's performance data.</p>
+
+        <!-- Filter Bar (GET form: the filters stay in the URL, so a report can be bookmarked) -->
+        <form method="get" class="filter-bar">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small" for="reportType">Report Type</label>
+                    <select class="form-select" id="reportType" name="type">
+                        @foreach (var t in Enum.GetValues<ReportType>())
+                        {
+                            <option value="@t" selected="@(t == Model.Type)">@ReportsModel.TypeLabel(t)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small" for="dateRange">Date Range</label>
+                    <select class="form-select" id="dateRange" name="range">
+                        <option value="@ReportRange.Today" selected="@(Model.Range == ReportRange.Today)">Today (Daily)</option>
+                        <option value="@ReportRange.Week" selected="@(Model.Range == ReportRange.Week)">This Week (Weekly)</option>
+                        <option value="@ReportRange.Month" selected="@(Model.Range == ReportRange.Month)">This Month (Monthly)</option>
+                        <option value="@ReportRange.Year" selected="@(Model.Range == ReportRange.Year)">This Year</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-gold w-100"><i class="fa-solid fa-filter me-1"></i> Generate Report</button>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" name="handler" value="Export" class="btn btn-outline-green w-100"><i class="fa-solid fa-file-csv me-1"></i> Export to CSV</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- KPI Cards -->
+        <div class="row g-4 mb-4">
+            @foreach (var (title, value, change) in kpis)
+            {
+                <div class="col-md-3">
+                    <div class="kpi-card">
+                        <h6>@title</h6>
+                        <h2>@value</h2>
+                        @if (change is double c)
+                        {
+                            <small class="@(c >= 0 ? "text-success" : "text-danger")"><i class="fa-solid @(c >= 0 ? "fa-arrow-up" : "fa-arrow-down") me-1"></i> @(c >= 0 ? "+" : "")@c.ToString("0.0")% @Model.CompareLabel</small>
+                        }
+                        else
+                        {
+                            <small class="text-muted">No data @Model.CompareLabel</small>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="chart-card">
+                    <h5>@r.TrendTitle</h5>
+                    <canvas id="mainChart" height="100"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-card">
+                    <h5>@r.BreakdownTitle</h5>
+                    <div style="position: relative; height: 250px;">
+                        @if (r.Breakdown.Values.Sum() == 0)
+                        {
+                            <p class="text-muted small text-center pt-5">No data for this period.</p>
+                        }
+                        <canvas id="breakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Data Table -->
+        <div class="table-card">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <h5 class="mb-0" style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green);">@ReportsModel.TypeLabel(r.Type)</h5>
+                <span class="text-muted small">Showing data for @r.RangeLabel (@r.From.ToString("dd MMM yyyy") &ndash; @r.To.AddDays(-1).ToString("dd MMM yyyy"))</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="dataTable">
+                    <thead>
+                        <tr>
+                            @foreach (var col in r.Columns)
+                            {
+                                <th>@col</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!r.Rows.Any())
+                        {
+                            <tr><td colspan="@r.Columns.Count" class="text-center text-muted py-4">No data for this period.</td></tr>
+                        }
+                        @foreach (var row in r.Rows)
+                        {
+                            <tr>
+                                @foreach (var cell in row)
+                                {
+                                    <td>@cell</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (r.TableUsage.Any())
+        {
+            <!-- Table utilisation (reservation report only) -->
+            <div class="table-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0" style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green);">Table Utilisation</h5>
+                    <span class="text-muted small">Hours booked &divide; opening hours in this period</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr><th>Table</th><th>Area</th><th>Seats</th><th>Bookings</th><th>Guests</th><th>Hours Booked</th><th>Utilisation</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in r.TableUsage)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@t.Table</td>
+                                    <td>@t.Area</td>
+                                    <td>@t.Capacity</td>
+                                    <td>@t.Bookings</td>
+                                    <td>@t.Guests</td>
+                                    <td>@t.HoursBooked</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="util-bar flex-grow-1"><div style="width: @(t.UtilisationPercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+                                            <span class="small fw-bold">@t.UtilisationPercent%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#6b7a72';
+
+        // Real report figures from ReportService
+        const report = @Html.Raw(Model.ChartJson);
+        const palette = ['#1E3F20', '#D4A373', '#6b7a72', '#0b6679', '#b98550', '#e8e3d9', '#8a5a0b', '#2C3E50'];
+
+        // Main trend chart
+        (function () {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(30, 63, 32, 0.2)');
+            gradient.addColorStop(1, 'rgba(30, 63, 32, 0)');
+            const fmt = v => report.trend.money ? 'RM ' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 }) : v;
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: report.trend.labels,
+                    datasets: [{
+                        label: report.trend.label,
+                        data: report.trend.data,
+                        borderColor: '#1E3F20', backgroundColor: gradient, borderWidth: 3,
+                        pointBackgroundColor: '#D4A373', pointBorderColor: '#fff', pointBorderWidth: 2,
+                        pointRadius: report.trend.labels.length > 20 ? 2 : 5, fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => report.trend.label + ': ' + fmt(c.parsed.y) } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#e8e3d9' }, ticks: { precision: 0, callback: v => report.trend.money ? 'RM ' + v.toLocaleString() : v } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        })();
+
+        // Breakdown chart (doughnut, or bar for peak hours)
+        (function () {
+            if (!report.breakdown.data.some(v => v > 0)) return;
+            const isBar = report.breakdown.type === 'bar';
+            new Chart(document.getElementById('breakdownChart').getContext('2d'), {
+                type: isBar ? 'bar' : 'doughnut',
+                data: {
+                    labels: report.breakdown.labels,
+                    datasets: [{
+                        data: report.breakdown.data,
+                        backgroundColor: isBar ? '#D4A373' : palette,
+                        borderWidth: 0, borderRadius: isBar ? 6 : 0, hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: isBar ? undefined : '70%',
+                    plugins: { legend: { display: !isBar, position: 'bottom', labels: { boxWidth: 12, padding: 15 } } },
+                    scales: isBar ? { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } : {}
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
