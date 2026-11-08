@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout - RROMS</title>
+    <title>Checkout - Artie's</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -83,7 +83,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top mb-5">
         <div class="container">
-            <a class="navbar-brand" asp-page="/CustomerPanel/Index"><i class="fa-solid fa-utensils me-2"></i>RROMS</a>
+            <a class="navbar-brand" asp-page="/CustomerPanel/Index"><i class="fa-solid fa-utensils me-2"></i>Artie's</a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
                 <i class="fa-solid fa-bars text-white"></i>
             </button>
@@ -91,13 +91,14 @@
                 <ul class="navbar-nav align-items-center">
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Index">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Menu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/BookTable">Book Table</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyReservations">My Reservations</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyOrders">My Orders</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Feedback">My Reviews</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
                     <li class="nav-item ms-3">
                         <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
-                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Logout</button>
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
                         </form>
                     </li>
                 </ul>

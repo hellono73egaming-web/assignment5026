@@ -71,16 +71,18 @@
         .table-card { background: #fff; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0,0,0,.02); padding: 25px; margin-top: 30px; }
         .table th { color: var(--muted); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); }
         .table td { vertical-align: middle; }
-            .util-bar { height: 6px; background: #f0f0f0; border-radius: 10px; min-width: 80px; }
+        .util-bar { height: 6px; background: #f0f0f0; border-radius: 10px; min-width: 80px; }
         .util-bar div { height: 6px; background: var(--primary-green); border-radius: 10px; }
+        
+        /* Fixed @@media print */
         @@media print { .navbar-custom, .filter-bar { display: none !important; } }
     </style>
 </head>
 <body>
 
-    <!-- Admin Navbar -->
+    <!-- Admin Navbar (Changed to standard container) -->
     <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
+        <div class="container">
             <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>Artie's Admin</a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
                 <i class="fa-solid fa-bars text-white"></i>
@@ -94,7 +96,7 @@
                     <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/MonitorOrders">Orders</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reviews">Reviews</a></li>
                     <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/AdminPanel/Reports">Reports</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
                     <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
                         <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
                             <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
@@ -105,7 +107,8 @@
         </div>
     </nav>
 
-    <div class="container-fluid px-4 pb-5">
+    <!-- Main Container (Changed to standard container) -->
+    <div class="container pb-5">
         <h1 class="page-title">Business Analytics</h1>
         <p class="text-muted mb-4">Generate and analyze your restaurant's performance data.</p>
 

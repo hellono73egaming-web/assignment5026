@@ -13,7 +13,10 @@ namespace WebApplication2.Services
                                       int PendingOrders, int PreparingOrders);
 
     public record CustomerDashboardData(Customer? Customer, List<Reservation> UpcomingReservations,
-                                        List<Notification> Notifications);
+                                        List<Notification> Notifications, Order? ActiveOrder, int UnreadCount);
+
+    public record StaffDashboardData(StaffDashboardStats Stats, List<Reservation> NextReservations,
+                                     List<Order> OrdersNeedingAction, decimal UnpaidTotal, int UnpaidBills);
 
     // Business tier for the Admin / Staff / Customer dashboards (3-tier architecture:
     // Razor Page -> DashboardService -> ApplicationDbContext -> SQL Server).
@@ -59,6 +62,45 @@ namespace WebApplication2.Services
             return new StaffDashboardStats(todayReservations, pendingReservations, pendingOrders, preparingOrders);
         }
 
+        // Staff dashboard: counts + what needs doing next
+        public async Task<StaffDashboardData> GetStaffDashboardAsync()
+        {
+            var stats = await GetStaffStatsAsync();
+            var (today, tomorrow) = TodayRange();
+
+            // Today's bookings that still need action (not finished / cancelled), soonest first
+            var next = await _db.Reservations
+                .Include(r => r.Customer)
+                .Include(r => r.RestaurantTable)
+                .Where(r => r.StartTime >= today && r.StartTime < tomorrow
+                            && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed
+                                || r.Status == ReservationStatus.Seated))
+                .OrderBy(r => r.StartTime)
+                .Take(6)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Orders the floor/kitchen must act on: new ones and ones ready to serve
+            var orders = await _db.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.OrderItems).ThenInclude(i => i.MenuItem)
+                .Include(o => o.Reservation).ThenInclude(r => r!.RestaurantTable)
+                .Where(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.ReadyToServe)
+                .OrderBy(o => o.CreatedAt)
+                .Take(6)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Bills waiting to be settled
+            var unpaid = await _db.Orders
+                .Where(o => o.Status != OrderStatus.Cancelled
+                            && (o.Payment == null || o.Payment.Status != PaymentStatus.Paid))
+                .Select(o => o.Total)
+                .ToListAsync();
+
+            return new StaffDashboardData(stats, next, orders, unpaid.Sum(), unpaid.Count);
+        }
+
         public async Task<CustomerDashboardData> GetCustomerDashboardAsync(string customerId)
         {
             var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId);
@@ -72,8 +114,19 @@ namespace WebApplication2.Services
                 .ToListAsync();
 
             var notifications = await _notifications.GetLatestAsync(customerId, 5);
+            var unread = await _notifications.GetUnreadCountAsync(customerId);
 
-            return new CustomerDashboardData(customer, upcoming, notifications);
+            // Most recent order that is still in progress (for the live tracker)
+            var activeOrder = await _db.Orders
+                .Include(o => o.OrderItems).ThenInclude(i => i.MenuItem)
+                .Include(o => o.Reservation).ThenInclude(r => r!.RestaurantTable)
+                .Where(o => o.CustomerId == customerId
+                            && o.Status != OrderStatus.Completed && o.Status != OrderStatus.Cancelled)
+                .OrderByDescending(o => o.CreatedAt)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            return new CustomerDashboardData(customer, upcoming, notifications, activeOrder, unread);
         }
 
         private static (DateTime today, DateTime tomorrow) TodayRange() =>
