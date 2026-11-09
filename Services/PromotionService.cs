@@ -70,6 +70,9 @@ namespace WebApplication2.Services
                 return ServiceResult<Promotion>.Fail("End date cannot be before the start date.");
             if (input.MenuItemId != null && !await _db.MenuItems.AnyAsync(m => m.Id == input.MenuItemId))
                 return ServiceResult<Promotion>.Fail("The selected menu item no longer exists.");
+            var image = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
+            if (image != null && !image.StartsWith("/uploads/") && !Uri.IsWellFormedUriString(image, UriKind.Absolute))
+                return ServiceResult<Promotion>.Fail("Image must be an uploaded file or a full link starting with http:// or https://.");
 
             Promotion promo;
             if (input.Id == 0)
@@ -89,6 +92,7 @@ namespace WebApplication2.Services
             promo.DiscountPercent = input.DiscountType == PromotionDiscountType.Percent ? Math.Round(input.DiscountPercent, 2) : 0;
             promo.DiscountAmount = input.DiscountType == PromotionDiscountType.Fixed ? Math.Round(input.DiscountAmount, 2) : 0;
             promo.PromoCode = code;
+            promo.ImageUrl = image;
             promo.MenuCategoryId = input.MenuItemId == null ? input.MenuCategoryId : null;   // one scope only
             promo.StartDate = input.StartDate.Date;
             promo.EndDate = input.EndDate.Date;

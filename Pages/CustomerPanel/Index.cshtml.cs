@@ -92,7 +92,7 @@ namespace WebApplication2.Pages.CustomerPanel
                 {
                     Title = p.Title,
                     Description = desc,
-                    ImageUrl = p.MenuItem?.ImageUrl,       // item promos show the dish photo
+                    ImageUrl = p.ImageUrl ?? p.MenuItem?.ImageUrl,   // promo photo, else the dish photo
                     DiscountType = p.DiscountType == PromotionDiscountType.Fixed ? "Fixed" : "Percent",
                     DiscountValue = p.DiscountType == PromotionDiscountType.Fixed ? p.DiscountAmount : p.DiscountPercent,
                     EndDate = p.EndDate

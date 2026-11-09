@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace WebApplication2.Services.Interfaces
 {
-    // Saves images uploaded by the admin (menu items, dining areas) into wwwroot/uploads
+    // Saves images uploaded by the admin (menu items, dining areas, promotions) into wwwroot/uploads
     // and returns the web path (e.g. /uploads/menu/abc123.jpg) to store in the database.
     public interface IImageStorageService
     {

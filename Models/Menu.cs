@@ -82,6 +82,10 @@ namespace WebApplication2.Models
         [StringLength(30)]
         public string? PromoCode { get; set; }
 
+        // Banner photo shown on the customer dashboard (uploaded file or link)
+        [StringLength(500)]
+        public string? ImageUrl { get; set; }
+
         public DateTime StartDate { get; set; } = DateTime.Today;
         public DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
 

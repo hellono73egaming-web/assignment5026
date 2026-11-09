@@ -13,7 +13,7 @@ namespace WebApplication2.Services
         private const string UploadRoot = "uploads";
 
         private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        private static readonly string[] AllowedFolders = { "menu", "areas" };
+        private static readonly string[] AllowedFolders = { "menu", "areas", "promos" };
 
         private readonly IWebHostEnvironment _env;
 

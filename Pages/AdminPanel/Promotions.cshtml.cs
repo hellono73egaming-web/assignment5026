@@ -12,12 +12,15 @@ namespace WebApplication2.Pages.AdminPanel
         private readonly IPromotionService _promotions;
         private readonly IAnnouncementService _announcements;
         private readonly IMenuService _menu;
+        private readonly IImageStorageService _images;
 
-        public PromotionsModel(IPromotionService promotions, IAnnouncementService announcements, IMenuService menu)
+        public PromotionsModel(IPromotionService promotions, IAnnouncementService announcements,
+                               IMenuService menu, IImageStorageService images)
         {
             _promotions = promotions;
             _announcements = announcements;
             _menu = menu;
+            _images = images;
         }
 
         // ---- What the page shows ----
@@ -37,10 +40,21 @@ namespace WebApplication2.Pages.AdminPanel
         }
 
         // ---- Promotions ----
-        public async Task<IActionResult> OnPostSavePromoAsync(PromoInput promo, bool notify)
+        // An uploaded photo wins over the link box. If saving fails, the new file is removed again.
+        public async Task<IActionResult> OnPostSavePromoAsync(PromoInput promo, bool notify, IFormFile? imageFile)
         {
             var isFixed = promo.DiscountType == "Fixed";
             var existing = promo.Id == 0 ? null : await _promotions.GetAsync(promo.Id);
+            var oldImage = existing?.ImageUrl;
+
+            string? uploaded = null;
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var upload = await _images.SaveAsync(imageFile, "promos");
+                if (!upload.Success) { Error = upload.Error; return RedirectToPage(); }
+                uploaded = upload.Value;
+                promo.ImageUrl = uploaded;
+            }
 
             var entity = new Promotion
             {
@@ -51,6 +65,7 @@ namespace WebApplication2.Pages.AdminPanel
                 DiscountPercent = isFixed ? 0 : promo.DiscountValue,
                 DiscountAmount = isFixed ? promo.DiscountValue : 0,
                 PromoCode = promo.PromoCode,
+                ImageUrl = promo.ImageUrl,
                 MenuCategoryId = promo.CategoryId,
                 MenuItemId = existing?.MenuItemId,          // keep an item-level scope set elsewhere
                 StartDate = promo.StartDate,
@@ -59,6 +74,9 @@ namespace WebApplication2.Pages.AdminPanel
             };
 
             var result = await _promotions.SaveAsync(entity, notify && promo.Id == 0);
+            if (!result.Success) _images.Delete(uploaded);
+            else if (oldImage != null && oldImage != result.Value!.ImageUrl) _images.Delete(oldImage);   // replaced or removed
+
             if (result.Success)
                 Message = promo.Id == 0
                     ? $"Promotion \"{entity.Title}\" created" + (notify ? " and sent to customers." : ".")
@@ -75,6 +93,21 @@ namespace WebApplication2.Pages.AdminPanel
 
             var result = await _promotions.SetActiveAsync(id, !p.IsActive);
             if (result.Success) Message = p.IsActive ? $"\"{p.Title}\" deactivated." : $"\"{p.Title}\" activated.";
+            else Error = result.Error;
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostDeletePromoAsync(int id)
+        {
+            var p = await _promotions.GetAsync(id);
+            if (p == null) { Error = "Promotion not found."; return RedirectToPage(); }
+
+            var result = await _promotions.DeleteAsync(id);
+            if (result.Success)
+            {
+                _images.Delete(p.ImageUrl);
+                Message = $"Promotion \"{p.Title}\" deleted. Past orders keep the discount they already got.";
+            }
             else Error = result.Error;
             return RedirectToPage();
         }
@@ -117,6 +150,17 @@ namespace WebApplication2.Pages.AdminPanel
             return RedirectToPage(new { tab = "announcements" });
         }
 
+        public async Task<IActionResult> OnPostDeleteAnnouncementAsync(int id)
+        {
+            var a = (await _announcements.GetAllAsync()).FirstOrDefault(x => x.Id == id);
+            if (a == null) { Error = "Announcement not found."; return RedirectToPage(new { tab = "announcements" }); }
+
+            var result = await _announcements.DeleteAsync(id);
+            if (result.Success) Message = $"Announcement \"{a.Title}\" deleted.";
+            else Error = result.Error;
+            return RedirectToPage(new { tab = "announcements" });
+        }
+
         // ---- Form inputs (names match the page: promo.Title, announcement.Message, ...) ----
         public class PromoInput
         {
@@ -126,6 +170,7 @@ namespace WebApplication2.Pages.AdminPanel
             public string DiscountType { get; set; } = "Percent";   // "Percent" or "Fixed"
             public decimal DiscountValue { get; set; }
             public string? PromoCode { get; set; }
+            public string? ImageUrl { get; set; }
             public int? CategoryId { get; set; }
             public DateTime StartDate { get; set; } = DateTime.Today;
             public DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
@@ -152,6 +197,7 @@ namespace WebApplication2.Pages.AdminPanel
             public decimal DiscountValue { get; set; }
             public string DiscountDisplay { get; set; } = string.Empty;
             public string? PromoCode { get; set; }
+            public string? ImageUrl { get; set; }
             public int? CategoryId { get; set; }
             public string Scope { get; set; } = "All menu items";
             public DateTime StartDate { get; set; }
@@ -177,6 +223,7 @@ namespace WebApplication2.Pages.AdminPanel
                     DiscountValue = isFixed ? p.DiscountAmount : p.DiscountPercent,
                     DiscountDisplay = isFixed ? $"RM {p.DiscountAmount:N2}" : $"{p.DiscountPercent:0.##}%",
                     PromoCode = p.PromoCode,
+                    ImageUrl = p.ImageUrl,
                     CategoryId = p.MenuCategoryId,
                     Scope = p.MenuItem?.Name ?? p.MenuCategory?.Name ?? "All menu items",
                     StartDate = p.StartDate,

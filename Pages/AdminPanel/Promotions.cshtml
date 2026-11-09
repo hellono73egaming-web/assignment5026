@@ -66,6 +66,10 @@
         .badge-expired { background: #fbeceb; color: #a02e24; }
         .badge-inactive { background: #eceeef; color: #565d63; }
         .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1080; }
+        /* Promotion photos */
+        .promo-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); flex-shrink: 0; }
+        .img-preview { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); flex-shrink: 0; }
+        .img-preview-empty { width: 72px; height: 72px; border-radius: 10px; border: 1px dashed #cfc8b8; display: flex; align-items: center; justify-content: center; color: #b5ad9c; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -152,9 +156,17 @@
                                 {
                                     <tr>
                                         <td>
-                                            <div class="fw-bold">@p.Title</div>
-                                            <div class="text-muted small">@p.Description</div>
-                                            <div class="small"><i class="fa-solid fa-utensils me-1 text-muted"></i>Applies to: @p.Scope</div>
+                                            <div class="d-flex gap-3 align-items-center">
+                                                @if (!string.IsNullOrEmpty(p.ImageUrl))
+                                                {
+                                                    <img src="@p.ImageUrl" class="promo-thumb" alt="@p.Title">
+                                                }
+                                                <div>
+                                                    <div class="fw-bold">@p.Title</div>
+                                                    <div class="text-muted small">@p.Description</div>
+                                                    <div class="small"><i class="fa-solid fa-utensils me-1 text-muted"></i>Applies to: @p.Scope</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td class="fw-bold text-success">@p.DiscountDisplay</td>
                                         <td><span class="badge bg-dark">@(p.PromoCode ?? "Auto")</span></td>
@@ -169,7 +181,7 @@
                                                     data-type="@p.DiscountType" data-value="@p.DiscountValue"
                                                     data-code="@p.PromoCode" data-start="@p.StartDate.ToString("yyyy-MM-dd")"
                                                     data-end="@p.EndDate.ToString("yyyy-MM-dd")" data-active="@(p.IsActive ? "true" : "false")"
-                                                    data-category="@p.CategoryId">
+                                                    data-category="@p.CategoryId" data-image="@p.ImageUrl">
                                                 <i class="fa-solid fa-pen"></i>
                                             </button>
                                             <form method="post" asp-page-handler="TogglePromo" asp-route-id="@p.Id" class="d-inline">
@@ -181,6 +193,10 @@
                                                 {
                                                     <button type="submit" class="btn btn-sm btn-outline-success btn-action" title="Activate"><i class="fa-solid fa-check"></i></button>
                                                 }
+                                            </form>
+                                            <form method="post" asp-page-handler="DeletePromo" asp-route-id="@p.Id" class="d-inline"
+                                                  onsubmit="return confirm('Delete this promotion? This cannot be undone. Past orders keep their discount.');">
+                                                <button type="submit" class="btn btn-sm btn-quiet-danger btn-action ms-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
                                             </form>
                                         </td>
                                     </tr>
@@ -251,6 +267,10 @@
                                                     <button type="submit" class="btn btn-sm btn-outline-success btn-action" title="Activate"><i class="fa-solid fa-check"></i></button>
                                                 }
                                             </form>
+                                            <form method="post" asp-page-handler="DeleteAnnouncement" asp-route-id="@a.Id" class="d-inline"
+                                                  onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+                                                <button type="submit" class="btn btn-sm btn-quiet-danger btn-action ms-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                            </form>
                                         </td>
                                     </tr>
                                 }
@@ -272,7 +292,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <form method="post" asp-page-handler="SavePromo" id="promoForm">
+                    <form method="post" asp-page-handler="SavePromo" id="promoForm" enctype="multipart/form-data">
                         <input type="hidden" name="promo.Id" id="promoId" value="0" />
                         
                         <div class="row g-3">
@@ -285,6 +305,22 @@
                                 <textarea class="form-control" name="promo.Description" id="promoDescription" rows="2" placeholder="Brief details about the offer..." required></textarea>
                             </div>
                             
+                            <div class="col-12">
+                                <label class="form-label" for="promoFile">Promotion Photo (Optional)</label>
+                                <div class="d-flex gap-3 align-items-center">
+                                    <img id="promoPreview" class="img-preview d-none" alt="Preview">
+                                    <div id="promoPreviewEmpty" class="img-preview-empty"><i class="fa-regular fa-image fa-lg"></i></div>
+                                    <div class="flex-grow-1">
+                                        <input type="file" class="form-control" name="imageFile" id="promoFile" accept=".jpg,.jpeg,.png,.gif,.webp">
+                                        <div class="form-text small">JPG, PNG, GIF or WEBP (max 5 MB). Shown on the customer dashboard. Leave empty to keep the current photo.</div>
+                                    </div>
+                                </div>
+                                <div class="input-group input-group-sm mt-2">
+                                    <input type="text" class="form-control" name="promo.ImageUrl" id="promoImage" placeholder="...or paste an image link (https://...)">
+                                    <button type="button" class="btn btn-outline-secondary" id="promoImageClear" title="Remove photo"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Discount Type</label>
                                 <select class="form-select" name="promo.DiscountType" id="promoType">
@@ -399,6 +435,30 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Image upload: preview the chosen photo and stop files over 5 MB before they are sent
+        function setupImagePicker(fileId, urlId, previewId, emptyId) {
+            const file = document.getElementById(fileId), url = document.getElementById(urlId);
+            const img = document.getElementById(previewId), empty = document.getElementById(emptyId);
+            const show = src => {
+                img.classList.toggle('d-none', !src); empty.classList.toggle('d-none', !!src);
+                if (src) img.src = src; else img.removeAttribute('src');
+            };
+            img.addEventListener('error', () => show(''));
+            file.addEventListener('change', () => {
+                const f = file.files[0];
+                file.setCustomValidity(f && f.size > 5 * 1024 * 1024 ? 'Image is too large. The limit is 5 MB.' : '');
+                file.reportValidity();
+                show(f ? URL.createObjectURL(f) : url.value.trim());
+            });
+            url.addEventListener('input', () => { if (!file.files.length) show(url.value.trim()); });
+            return { reset: () => { file.value = ''; file.setCustomValidity(''); show(url.value.trim()); } };
+        }
+        const promoPicker = setupImagePicker('promoFile', 'promoImage', 'promoPreview', 'promoPreviewEmpty');
+        document.getElementById('promoImageClear').addEventListener('click', () => {
+            document.getElementById('promoImage').value = '';
+            promoPicker.reset();
+        });
+
         // Pre-fill Promo Modal for Edit
         document.getElementById('promoModal').addEventListener('show.bs.modal', e => {
             const b = e.relatedTarget.dataset;
@@ -415,6 +475,8 @@
             document.getElementById('promoEnd').value = editing ? b.end : '';
             document.getElementById('promoActive').checked = editing ? b.active === 'true' : true;
             document.getElementById('promoCategory').value = editing ? (b.category || '') : '';
+            document.getElementById('promoImage').value = editing ? (b.image || '') : '';
+            promoPicker.reset();
             
             // Hide notify checkbox when editing
             document.getElementById('promoNotify').closest('.form-check').style.display = editing ? 'none' : 'block';
