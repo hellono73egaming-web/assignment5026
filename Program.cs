@@ -132,6 +132,7 @@ builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IChatbotService, ChatbotService>();
+builder.Services.AddScoped<IImageStorageService, ImageStorageService>();
 
 var app = builder.Build();
 
@@ -146,6 +147,10 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// MapStaticAssets only serves files that existed at build time.
+// UseStaticFiles also serves photos the admin uploads while the app runs (wwwroot/uploads).
+app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();

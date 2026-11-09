@@ -167,6 +167,9 @@ namespace WebApplication2.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Audience")
+                        .HasColumnType("int");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -646,9 +649,16 @@ namespace WebApplication2.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<decimal>("DiscountPercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
@@ -656,8 +666,15 @@ namespace WebApplication2.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("MenuCategoryId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("MenuItemId")
                         .HasColumnType("int");
+
+                    b.Property<string>("PromoCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -669,7 +686,11 @@ namespace WebApplication2.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MenuCategoryId");
+
                     b.HasIndex("MenuItemId");
+
+                    b.HasIndex("PromoCode");
 
                     b.ToTable("Promotions");
                 });
@@ -996,10 +1017,17 @@ namespace WebApplication2.Migrations
 
             modelBuilder.Entity("WebApplication2.Models.Promotion", b =>
                 {
+                    b.HasOne("WebApplication2.Models.MenuCategory", "MenuCategory")
+                        .WithMany()
+                        .HasForeignKey("MenuCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("WebApplication2.Models.MenuItem", "MenuItem")
                         .WithMany("Promotions")
                         .HasForeignKey("MenuItemId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("MenuCategory");
 
                     b.Navigation("MenuItem");
                 });

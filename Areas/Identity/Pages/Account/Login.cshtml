@@ -1,8 +1,13 @@
 @page
 @model LoginModel
+@inject SignInManager<ApplicationUser> SignInManager
 @{
     ViewData["Title"] = "Login";
     Layout = null; /* Fixes Centering */
+
+    // Only show social buttons for providers whose keys are set up (User Secrets)
+    var providers = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Select(s => s.Name).ToHashSet();
+    var socialCol = providers.Count switch { 1 => "col-12", 2 => "col-6", _ => "col-4" };
 }
 
 <!DOCTYPE html>
@@ -221,19 +226,31 @@
 
                         <button type="submit" class="btn btn-action mb-4">Sign In</button>
 
+                        @if (providers.Count > 0)
+                        {
                         <div class="divider">Or continue with</div>
 
                         <div class="row g-3">
-                            <div class="col-4">
+                            @if (providers.Contains("Google"))
+                            {
+                            <div class="@socialCol">
                                 <button type="submit" class="social-btn" asp-page-handler="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" name="provider" value="Google" formnovalidate><i class="fab fa-google text-danger"></i> Google</button>
                             </div>
-                            <div class="col-4">
+                            }
+                            @if (providers.Contains("Facebook"))
+                            {
+                            <div class="@socialCol">
                                 <button type="submit" class="social-btn" asp-page-handler="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" name="provider" value="Facebook" formnovalidate><i class="fab fa-facebook text-primary"></i> Facebook</button>
                             </div>
-                            <div class="col-4">
+                            }
+                            @if (providers.Contains("Microsoft"))
+                            {
+                            <div class="@socialCol">
                                 <button type="submit" class="social-btn" asp-page-handler="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" name="provider" value="Microsoft" formnovalidate><i class="fab fa-microsoft" style="color:#00a4ef;"></i> Microsoft</button>
                             </div>
+                            }
                         </div>
+                        }
 
                     </form>
 

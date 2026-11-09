@@ -100,8 +100,9 @@ namespace WebApplication2.Services
                 return ServiceResult.Fail("Price must be between RM 0.01 and RM 10,000.");
             if (!await _db.MenuCategories.AnyAsync(c => c.Id == categoryId))
                 return ServiceResult.Fail("Please choose a category.");
-            if (!string.IsNullOrWhiteSpace(imageUrl) && !Uri.IsWellFormedUriString(imageUrl.Trim(), UriKind.Absolute))
-                return ServiceResult.Fail("Image URL must be a full link starting with http:// or https://.");
+            if (!string.IsNullOrWhiteSpace(imageUrl) && !imageUrl.Trim().StartsWith("/uploads/")
+                && !Uri.IsWellFormedUriString(imageUrl.Trim(), UriKind.Absolute))
+                return ServiceResult.Fail("Image must be an uploaded file or a full link starting with http:// or https://.");
 
             if (await _db.MenuItems.AnyAsync(m => m.Id != id && m.Name.ToLower() == name.ToLower()))
                 return ServiceResult.Fail($"A menu item called \"{name}\" already exists.");
