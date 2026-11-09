@@ -124,6 +124,19 @@
     <div class="container pb-5">
         <h1 class="page-title">User Management</h1>
 
+        @if (Model.TempPassword != null)
+        {
+            <!-- Shown once: the admin reads this to the customer over the phone -->
+            <div class="alert alert-success d-flex align-items-start gap-3" role="alert">
+                <i class="fa-solid fa-key fa-lg mt-1"></i>
+                <div>
+                    <div class="fw-bold">Temporary password for @Model.TempPasswordFor</div>
+                    <div class="fs-4 fw-bold my-1" style="letter-spacing: 1px;">@Model.TempPassword</div>
+                    <div class="small">Call the customer on their registered phone number and give them this password. It is shown only once. They have been notified to change it on My Profile after logging in.</div>
+                </div>
+            </div>
+        }
+
         <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="userTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -178,8 +191,16 @@
                                         </td>
                                         <td>@(u.PhoneNumber ?? "-")</td>
                                         <td>@u.CreatedAt.ToString("MMM dd, yyyy")</td>
-                                        <td><span class="status-badge @(u.IsActive ? "badge-active" : "badge-suspended")">@(u.IsActive ? "Active" : "Suspended")</span></td>
+                                        <td>
+                                            <span class="status-badge @(u.IsActive ? "badge-active" : "badge-suspended")">@(u.IsActive ? "Active" : "Suspended")</span>
+                                        </td>
                                         <td class="text-end text-nowrap">
+                                            <form method="post" asp-page-handler="ResetPassword" class="d-inline"
+                                                  onsubmit="return confirm('Reset this customer\'s password to a new temporary password?');">
+                                                <input type="hidden" name="id" value="@u.Id" />
+                                                <input type="hidden" name="name" value="@u.FullName" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary btn-action me-1" title="Reset password (customer forgot it)"><i class="fa-solid fa-key"></i></button>
+                                            </form>
                                             <button type="button" class="btn btn-sm btn-outline-green btn-action me-1" title="View"
                                                     data-bs-toggle="modal" data-bs-target="#viewCustomerModal"
                                                     data-name="@u.FullName" data-initials="@UsersModel.Initials(u.FullName)" data-email="@u.Email"

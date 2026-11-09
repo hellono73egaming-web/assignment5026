@@ -29,6 +29,10 @@ namespace WebApplication2.Pages.AdminPanel
         [TempData] public string? Message { get; set; }
         [TempData] public string? Error { get; set; }
 
+        // Shown once after a password reset, so the admin can read it to the customer
+        [TempData] public string? TempPassword { get; set; }
+        [TempData] public string? TempPasswordFor { get; set; }
+
         public async Task OnGetAsync()
         {
             Customers = await _users.GetCustomersAsync();
@@ -67,6 +71,20 @@ namespace WebApplication2.Pages.AdminPanel
             else Error = result.Error;
 
             return RedirectToPage(new { tab });
+        }
+
+        // Forgot password (customer contacted the restaurant): set a temporary password, shown to the admin once
+        public async Task<IActionResult> OnPostResetPasswordAsync(string id, string name)
+        {
+            var result = await _users.ResetCustomerPasswordAsync(id);
+            if (result.Success)
+            {
+                TempPassword = result.Value;
+                TempPasswordFor = name;
+            }
+            else Error = result.Error;
+
+            return RedirectToPage(new { tab = "customers" });
         }
 
         // ---- Helpers used by the page ----

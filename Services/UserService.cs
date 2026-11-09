@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication2.Data;
@@ -19,10 +20,13 @@ namespace WebApplication2.Services
         // Job titles a staff member can have (stored in Staff.Position; the login role is always "Staff")
         public static readonly string[] Positions = { "Waiter", "Chef", "Cashier", "Host", "Manager" };
 
-        public UserService(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        private readonly INotificationService _notifications;
+
+        public UserService(ApplicationDbContext db, UserManager<ApplicationUser> userManager, INotificationService notifications)
         {
             _db = db;
             _userManager = userManager;
+            _notifications = notifications;
         }
 
         public async Task<List<CustomerSummary>> GetCustomersAsync()
@@ -109,6 +113,32 @@ namespace WebApplication2.Services
             // Changing the security stamp signs a suspended user out of any open sessions
             if (!active) await _userManager.UpdateSecurityStampAsync(user);
             return ServiceResult.Ok();
+        }
+
+        // Forgot password: the customer contacts the restaurant and the admin resets it here.
+        public async Task<ServiceResult<string>> ResetCustomerPasswordAsync(string customerId)
+        {
+            var user = await _userManager.FindByIdAsync(customerId);
+            if (user is not Customer customer) return ServiceResult<string>.Fail("Customer not found.");
+
+            // e.g. "Gabagool#4821": passes every password rule (upper, lower, number, symbol, 8+ characters)
+            var temporary = $"Gabagool#{RandomNumberGenerator.GetInt32(1000, 10000)}";
+
+            // Identity's own reset token: checks the password rules and stores only the hash
+            var token = await _userManager.GeneratePasswordResetTokenAsync(customer);
+            var result = await _userManager.ResetPasswordAsync(customer, token, temporary);
+            if (!result.Succeeded)
+                return ServiceResult<string>.Fail(string.Join(" ", result.Errors.Select(e => e.Description)));
+
+            // A customer locked out by wrong guesses can log in straight away
+            await _userManager.SetLockoutEndDateAsync(customer, null);
+            await _userManager.ResetAccessFailedCountAsync(customer);
+
+            await _notifications.SendAsync(customer.Id, "Password reset by Artie's",
+                "Your password was reset by the restaurant. Please change your temporary password on My Profile.",
+                NotificationType.General, "/Profile");
+
+            return ServiceResult<string>.Ok(temporary);
         }
 
         // Delete only accounts with no history; otherwise suspend (keeps sales records correct)
