@@ -50,7 +50,7 @@ namespace WebApplication2.Services
 
         public async Task<RestaurantSetting> GetSettingsAsync() =>
             await _db.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync()
-            ?? new RestaurantSetting { RestaurantName = "RROMS", ReservationDurationMinutes = 120 };
+            ?? new RestaurantSetting { RestaurantName = "Artie's Restaurant", ReservationDurationMinutes = 120 };
 
         // ------------------------------------------------------------
         // VALIDATION
@@ -237,6 +237,11 @@ namespace WebApplication2.Services
             if (!AllowedTransitions[reservation.Status].Contains(newStatus))
                 return ServiceResult.Fail($"Cannot change a reservation from {reservation.Status} to {newStatus}.");
 
+            // Guests can only be seated / finished / marked no-show on the day of the booking (or after)
+            if (newStatus is ReservationStatus.Seated or ReservationStatus.Completed or ReservationStatus.NoShow
+                && reservation.StartTime.Date > DateTime.Today)
+                return ServiceResult.Fail($"Booking {reservation.ReservationCode} is on {reservation.StartTime:d MMM}. It can only be marked as {newStatus} on that day.");
+
             reservation.Status = newStatus;
             reservation.UpdatedAt = DateTime.Now;
 
@@ -264,6 +269,30 @@ namespace WebApplication2.Services
                .Where(r => r.StartTime >= date.Date && r.StartTime < date.Date.AddDays(1))
                .OrderBy(r => r.StartTime)
                .ToListAsync();
+
+        // Admin - monitor past, current and upcoming reservations (read-only).
+        // Optional filters: one date, and customer name / email / phone / booking code.
+        public Task<List<Reservation>> SearchAsync(DateTime? date, string? search)
+        {
+            var query = _db.Reservations
+                .Include(r => r.Customer)
+                .Include(r => r.RestaurantTable).ThenInclude(t => t!.DiningArea)
+                .AsQueryable();
+
+            if (date != null)
+                query = query.Where(r => r.StartTime >= date.Value.Date && r.StartTime < date.Value.Date.AddDays(1));
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim();
+                query = query.Where(r => r.ReservationCode.Contains(s)
+                                      || r.Customer!.FullName.Contains(s)
+                                      || r.Customer.Email!.Contains(s)
+                                      || r.Customer.PhoneNumber!.Contains(s));
+            }
+
+            return query.OrderByDescending(r => r.StartTime).Take(500).ToListAsync();
+        }
 
         // CS12 / RS17 - history
         public Task<List<Reservation>> GetForCustomerAsync(string customerId) =>

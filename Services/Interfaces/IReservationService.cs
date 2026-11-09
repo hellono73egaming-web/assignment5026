@@ -18,6 +18,7 @@ namespace WebApplication2.Services.Interfaces
         Task<ServiceResult> ChangeStatusAsync(int reservationId, ReservationStatus newStatus);
 
         Task<List<Reservation>> GetForDateAsync(DateTime date);
+        Task<List<Reservation>> SearchAsync(DateTime? date, string? search);   // admin monitoring (read-only)
         Task<List<Reservation>> GetForCustomerAsync(string customerId);
     }
 }

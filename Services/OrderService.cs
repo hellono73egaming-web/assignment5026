@@ -240,11 +240,15 @@ namespace WebApplication2.Services
         // RS10-RS12 - move an order through its statuses
         public async Task<ServiceResult> UpdateStatusAsync(int orderId, OrderStatus newStatus)
         {
-            var order = await _db.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            var order = await _db.Orders.Include(o => o.Payment).FirstOrDefaultAsync(o => o.Id == orderId);
             if (order == null) return ServiceResult.Fail("Order not found.");
 
             if (!AllowedTransitions[order.Status].Contains(newStatus))
                 return ServiceResult.Fail($"Cannot change an order from {order.Status} to {newStatus}.");
+
+            // Already paid online + now served = nothing left to do, so it is finished
+            if (newStatus == OrderStatus.Served && order.Payment?.Status == PaymentStatus.Paid)
+                newStatus = OrderStatus.Completed;
 
             order.Status = newStatus;
             order.UpdatedAt = DateTime.Now;
@@ -258,6 +262,17 @@ namespace WebApplication2.Services
                 OrderStatus.Cancelled    => $"Order {order.OrderNumber} has been cancelled.",
                 _ => null
             };
+
+            // A cancelled order that was already paid online is refunded (simulated),
+            // and the loyalty points earned on it are taken back.
+            if (newStatus == OrderStatus.Cancelled && order.Payment?.Status == PaymentStatus.Paid)
+            {
+                order.Payment.Status = PaymentStatus.Refunded;
+                var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == order.CustomerId);
+                if (customer != null)
+                    customer.LoyaltyPoints = Math.Max(0, customer.LoyaltyPoints - (int)Math.Floor(order.Payment.Amount * PaymentService.PointsPerRinggit));
+                message += $" Your payment of RM {order.Payment.Amount:N2} has been refunded.";
+            }
 
             if (message != null)
                 _notifications.Queue(order.CustomerId, $"Order {FriendlyStatus(newStatus).ToLower()}",

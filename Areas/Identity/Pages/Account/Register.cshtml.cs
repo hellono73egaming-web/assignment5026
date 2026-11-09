@@ -107,7 +107,7 @@ namespace WebApplication2.Areas.Identity.Pages.Account
             await _userManager.AddToRoleAsync(customer, customer.RoleName);
 
             // CS19-22: first in-system notification
-            await _notifications.SendAsync(customer.Id, "Welcome to RROMS!",
+            await _notifications.SendAsync(customer.Id, "Welcome to Artie's!",
                 $"Hi {customer.FullName}, your account is ready. You can now reserve tables and order online.",
                 NotificationType.General);
 

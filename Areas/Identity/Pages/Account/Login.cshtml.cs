@@ -227,7 +227,7 @@ namespace WebApplication2.Areas.Identity.Pages.Account
 
                 await _userManager.AddToRoleAsync(customer, customer.RoleName);
 
-                await _notifications.SendAsync(customer.Id, "Welcome to RROMS!",
+                await _notifications.SendAsync(customer.Id, "Welcome to Artie's!",
                     $"Hi {customer.FullName}, your account was created with {info.ProviderDisplayName}.",
                     NotificationType.General);
 

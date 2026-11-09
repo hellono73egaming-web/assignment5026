@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WebApplication2.Models;
@@ -8,6 +9,9 @@ namespace WebApplication2.Pages.StaffPanel
     // RS4-RS8, RS15-RS17: staff view of one day's bookings.
     // Confirm / Check-in / Complete / No-show / Cancel all go through ReservationService,
     // which only allows valid status changes and notifies the customer.
+    // Staff only: confirming bookings is the staff's job. The Administrator reviews
+    // reservations read-only on AdminPanel/Reservations.
+    [Authorize(Roles = Roles.Staff)]
     public class ReservationsModel : PageModel
     {
         private readonly IReservationService _reservations;

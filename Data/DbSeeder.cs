@@ -45,11 +45,17 @@ namespace WebApplication2.Data
             {
                 db.RestaurantSettings.Add(new RestaurantSetting
                 {
-                    RestaurantName = "RROMS Bistro",
+                    RestaurantName = "Artie's Restaurant",
                     Address = "Penang, Malaysia",
                     ReservationDurationMinutes = 120,
                     ServiceTaxPercent = 6
                 });
+            }
+            else
+            {
+                // Databases created before the rebrand still say "RROMS Bistro" on receipts
+                var setting = await db.RestaurantSettings.FirstAsync();
+                if (setting.RestaurantName == "RROMS Bistro") setting.RestaurantName = "Artie's Restaurant";
             }
 
             // 4. Operating hours: 11:00 - 22:00 every day
@@ -125,6 +131,11 @@ namespace WebApplication2.Data
             }
 
             await db.SaveChangesAsync();
+
+            // Orders that were paid online and then served before the auto-complete rule existed
+            await db.Orders
+                .Where(o => o.Status == OrderStatus.Served && o.Payment != null && o.Payment.Status == PaymentStatus.Paid)
+                .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Completed));
         }
 
         // Accepts ANY subclass of ApplicationUser (polymorphism) and
