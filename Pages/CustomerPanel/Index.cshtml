@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model WebApplication2.Pages.CustomerPanel.IndexModel
 @using WebApplication2.Models
 @using WebApplication2.Services
@@ -28,6 +28,7 @@
             --bg-cream: #F9F6F0; 
             --text-dark: #2C3E50; 
             --muted: #6b7a72;
+            --line: #e8e3d9;
         }
 
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
@@ -100,7 +101,7 @@
 
         .btn-gold { background-color: var(--accent-gold); color: var(--primary-green); font-weight: 700; border-radius: 8px; border: none; transition: 0.3s; }
         .btn-gold:hover { background-color: var(--gold-dark); color: white; }
-            .badge-muted { background: #eceeef; color: #565d63; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
+        .badge-muted { background: #eceeef; color: #565d63; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
         .toast-container { position: fixed; top: 80px; right: 20px; z-index: 1080; }
 
         /* Notifications */
@@ -114,6 +115,39 @@
         .notif-item .msg { font-size: .85rem; color: var(--muted); }
         .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-gold); display: inline-block; margin-left: 6px; }
         .bell-badge { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; font-size: .7rem; border-radius: 10px; padding: 2px 7px; margin-left: 4px; }
+
+        /* PROMO CARDS CSS */
+        .promo-card {
+            background: #fff; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid var(--line);
+            transition: transform 0.3s ease; display: flex; flex-direction: column;
+        }
+        .promo-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(212, 163, 115, 0.15); }
+        .promo-img-wrapper { position: relative; height: 160px; overflow: hidden; }
+        .promo-img { width: 100%; height: 100%; object-fit: cover; }
+        .promo-img-placeholder {
+            width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary-green), #2a5530);
+            display: flex; align-items: center; justify-content: center; font-size: 3rem; color: rgba(255,255,255,0.2);
+        }
+        .promo-badge {
+            position: absolute; top: 15px; right: 15px; background: var(--accent-gold); color: var(--primary-green);
+            font-weight: 800; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .promo-body { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+        .promo-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--text-dark); font-size: 1.2rem; margin-bottom: 5px; }
+        .promo-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 10px; flex-grow: 1; }
+
+        /* RECOMMENDATION CARDS CSS */
+        .rec-card {
+            background: #fff; border-radius: 16px; overflow: hidden; display: flex;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid var(--line); height: 120px;
+        }
+        .rec-img { width: 120px; height: 100%; object-fit: cover; flex-shrink: 0; }
+        .rec-img-placeholder { width: 120px; height: 100%; display: flex; align-items: center; justify-content: center; background: #efece4; color: #cfc8b8; font-size: 2rem; flex-shrink: 0;}
+        .rec-body { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
+        .rec-title { font-weight: 700; color: var(--text-dark); font-size: 1rem; margin-bottom: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+        .rec-reason { font-size: 0.75rem; color: var(--primary-green); font-weight: 600; margin-bottom: 5px; }
+        .rec-reason i { color: var(--accent-gold); }
     </style>
 </head>
 <body>
@@ -176,6 +210,94 @@
     </div>
 
     <div class="container pb-5">
+
+        <!-- ================= CURRENT PROMOTIONS ================= -->
+        @if (Model.ActivePromotions != null && Model.ActivePromotions.Any())
+        {
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h4 class="mb-3" style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green);">Current Promotions</h4>
+                    
+                    <div class="d-flex gap-3 overflow-auto pb-2" style="scrollbar-width: thin;">
+                        @foreach (var promo in Model.ActivePromotions)
+                        {
+                            <div class="promo-card" style="min-width: 320px; max-width: 320px;">
+                                <div class="promo-img-wrapper">
+                                    @if (!string.IsNullOrEmpty(promo.ImageUrl))
+                                    {
+                                        <img src="@promo.ImageUrl" alt="@promo.Title" class="promo-img">
+                                    }
+                                    else
+                                    {
+                                        <div class="promo-img-placeholder"><i class="fa-solid fa-tags"></i></div>
+                                    }
+                                    
+                                    <div class="promo-badge">
+                                        @if (promo.DiscountType == "Percent")
+                                        {
+                                            <span>@promo.DiscountValue.ToString("0")% OFF</span>
+                                        }
+                                        else
+                                        {
+                                            <span>RM @promo.DiscountValue.ToString("0") OFF</span>
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <div class="promo-body">
+                                    <h5 class="promo-title">@promo.Title</h5>
+                                    <p class="promo-desc">@promo.Description</p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <small class="text-muted fw-bold"><i class="fa-regular fa-clock me-1"></i>Ends @promo.EndDate.ToString("dd MMM")</small>
+                                        <a asp-page="/CustomerPanel/Menu" class="btn btn-sm btn-gold">Order Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- ================= RECOMMENDED FOR YOU ================= -->
+        @if (Model.Recommendations != null && Model.Recommendations.Any())
+        {
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-end mb-3">
+                        <h4 class="mb-0" style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green);">Recommended for You</h4>
+                        <a asp-page="/CustomerPanel/Menu" class="text-decoration-none fw-bold" style="color: var(--accent-gold); font-size: 0.9rem;">View Full Menu <i class="fa-solid fa-arrow-right ms-1"></i></a>
+                    </div>
+                    
+                    <div class="row g-3">
+                        @foreach (var rec in Model.Recommendations)
+                        {
+                            <div class="col-md-6 col-lg-3">
+                                <div class="rec-card">
+                                    @if (!string.IsNullOrEmpty(rec.ImageUrl))
+                                    {
+                                        <img src="@rec.ImageUrl" alt="@rec.Name" class="rec-img">
+                                    }
+                                    else
+                                    {
+                                        <div class="rec-img-placeholder"><i class="fa-solid fa-utensils"></i></div>
+                                    }
+                                    <div class="rec-body">
+                                        <h6 class="rec-title">@rec.Name</h6>
+                                        <div class="rec-reason"><i class="fa-solid @rec.Icon me-1"></i>@rec.Reason</div>
+                                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                                            <span class="fw-bold text-success">RM @rec.Price.ToString("N2")</span>
+                                            <a asp-page="/CustomerPanel/Menu" class="btn btn-sm btn-gold rounded-circle" style="width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-plus"></i></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
 
         <!-- Quick Actions -->
         <div class="row g-4 mb-5">
@@ -274,7 +396,6 @@
                             </div>
                             <p class="text-muted small mb-0">@string.Join(", ", o.OrderItems.Select(i => $"{i.Quantity}x {i.MenuItem?.Name}"))</p>
 
-                            <!-- Progress Tracker -->
                             <div class="tracker-container">
                                 @for (int i = 0; i < steps.Length; i++)
                                 {
@@ -295,7 +416,7 @@
             </div>
         </div>
 
-        <!-- Notifications (Customer i) -->
+        <!-- Notifications -->
         <div class="notif-card" id="notifications">
             <div class="status-header">
                 <h5><i class="fa-solid fa-bell me-2" style="color: var(--accent-gold);"></i>Notifications
@@ -344,9 +465,10 @@
 
         @if (Model.ActiveOrder != null)
         {
-            // Live tracking: refresh every 30 seconds while an order is in progress
             <text>setTimeout(() => location.reload(), 30000);</text>
         }
     </script>
+    <!-- Tony chat assistant -->
+    <partial name="_ChatWidget" />
 </body>
 </html>

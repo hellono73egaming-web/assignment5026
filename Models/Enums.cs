@@ -49,6 +49,19 @@ namespace WebApplication2.Models
         OnlineBanking
     }
 
+    public enum PromotionDiscountType
+    {
+        Percent,
+        Fixed
+    }
+
+    public enum AnnouncementAudience
+    {
+        Customers,
+        Staff,
+        All
+    }
+
     public enum NotificationType
     {
         Reservation,

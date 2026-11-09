@@ -1,0 +1,455 @@
+﻿@page
+@model WebApplication2.Pages.AdminPanel.PromotionsModel
+@using WebApplication2.Models
+@using WebApplication2.Pages.AdminPanel
+@{
+    ViewData["Title"] = "Promotions & Announcements";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promotions - Artie's Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-green: #1E3F20; --accent-gold: #D4A373; --gold-dark: #b98550;
+            --bg-cream: #F9F6F0; --text-dark: #2C3E50; --muted: #6b7a72; --line: #e8e3d9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-cream); color: var(--text-dark); }
+
+        /* Navbar */
+        .navbar-custom { background-color: var(--primary-green); padding: 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .navbar-custom .navbar-brand { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--bg-cream); font-size: 1.5rem; }
+        .navbar-custom .nav-link { color: #d1d8d2; font-weight: 500; transition: color .2s; }
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active { color: var(--accent-gold); }
+
+        /* Page Header */
+        .page-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-green); font-size: 2rem; margin: 40px 0 24px; }
+
+        /* Tabs */
+        .nav-tabs { border-bottom: 2px solid var(--line); margin-bottom: 24px; }
+        .nav-tabs .nav-link { border: none; color: var(--muted); font-weight: 600; font-size: 1.05rem; padding: 12px 20px; transition: color .2s; }
+        .nav-tabs .nav-link:hover { color: var(--primary-green); }
+        .nav-tabs .nav-link.active { color: var(--primary-green); border-bottom: 3px solid var(--accent-gold); background: transparent; }
+
+        /* Cards & Tables */
+        .content-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,.02); }
+        .table th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--line); padding: 12px 16px; white-space: nowrap; }
+        .table td { padding: 12px 16px; vertical-align: middle; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+        
+        /* Buttons */
+        .btn-gold { background: var(--accent-gold); color: var(--primary-green); font-weight: 700; border: 0; border-radius: 10px; padding: 10px 22px; transition: background .2s; }
+        .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+        .btn-action { padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: .85rem; }
+        .btn-outline-green { border: 1.5px solid var(--primary-green); color: var(--primary-green); }
+        .btn-outline-green:hover { background: var(--primary-green); color: #fff; }
+        .btn-quiet-danger { border: 1.5px solid #dc3545; color: #dc3545; }
+        .btn-quiet-danger:hover { background: #dc3545; color: #fff; }
+
+        /* Forms & Inputs */
+        .form-control, .form-select { border-radius: 10px; padding: 10px 15px; border-color: var(--line); }
+        .form-control:focus, .form-select:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 0.25rem rgba(212,163,115,.25); }
+        .form-label { font-weight: 600; color: var(--text-dark); font-size: .9rem; }
+        .form-check-input:checked { background-color: var(--primary-green); border-color: var(--primary-green); }
+
+        /* Status Badge */
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
+        .badge-active { background: #e3f3e7; color: #1d6b34; }
+        .badge-scheduled { background: #fdf0d5; color: #8a5a0b; }
+        .badge-expired { background: #fbeceb; color: #a02e24; }
+        .badge-inactive { background: #eceeef; color: #565d63; }
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1080; }
+    </style>
+</head>
+<body>
+
+    <!-- Toast -->
+    <div class="toast-container">
+        <div id="resultToast" class="toast align-items-center text-white @(Model.Error != null ? "bg-danger" : "bg-success") border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">@(Model.Error ?? Model.Message)</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" asp-page="/AdminPanel/Index"><i class="fa-solid fa-utensils me-2"></i>Artie's Admin</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageRestaurant">Restaurant</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/ManageMenu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Users">Users</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/StaffPanel/Reservations">Reservations</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/MonitorOrders">Orders</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reviews">Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/AdminPanel/Promotions">Promos</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/AdminPanel/Reports">Reports</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm px-3">Log out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <h1 class="page-title">Promotions & Announcements</h1>
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="promoTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="promos-tab" data-bs-toggle="tab" data-bs-target="#promos" type="button" role="tab">Campaigns & Promotions (@Model.Promotions.Count)</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab">Announcements (@Model.Announcements.Count)</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="promoTabsContent">
+
+            <!-- ================= PROMOTIONS TAB ================= -->
+            <div class="tab-pane fade show active" id="promos" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">Active & Scheduled Promotions</h5>
+                        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#promoModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> Create Promotion</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Discount</th>
+                                    <th>Code</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Promotions.Any())
+                                {
+                                    <tr><td colspan="6" class="text-muted text-center py-4">No promotions yet.</td></tr>
+                                }
+                                @foreach (var p in Model.Promotions)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">@p.Title</div>
+                                            <div class="text-muted small">@p.Description</div>
+                                            <div class="small"><i class="fa-solid fa-utensils me-1 text-muted"></i>Applies to: @p.Scope</div>
+                                        </td>
+                                        <td class="fw-bold text-success">@p.DiscountDisplay</td>
+                                        <td><span class="badge bg-dark">@(p.PromoCode ?? "Auto")</span></td>
+                                        <td class="small text-muted">@p.StartDate.ToString("dd MMM") &ndash; @p.EndDate.ToString("dd MMM yyyy")</td>
+                                        <td>
+                                            <span class="status-badge @p.StatusCss">@p.Status</span>
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#promoModal"
+                                                    data-id="@p.Id" data-title="@p.Title" data-description="@p.Description"
+                                                    data-type="@p.DiscountType" data-value="@p.DiscountValue"
+                                                    data-code="@p.PromoCode" data-start="@p.StartDate.ToString("yyyy-MM-dd")"
+                                                    data-end="@p.EndDate.ToString("yyyy-MM-dd")" data-active="@(p.IsActive ? "true" : "false")"
+                                                    data-category="@p.CategoryId">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <form method="post" asp-page-handler="TogglePromo" asp-route-id="@p.Id" class="d-inline">
+                                                @if (p.IsActive)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-quiet-danger btn-action" title="Deactivate"><i class="fa-solid fa-ban"></i></button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success btn-action" title="Activate"><i class="fa-solid fa-check"></i></button>
+                                                }
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ANNOUNCEMENTS TAB ================= -->
+            <div class="tab-pane fade" id="announcements" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">System Announcements</h5>
+                        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#announcementModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> New Announcement</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Audience</th>
+                                    <th>Publish Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Announcements.Any())
+                                {
+                                    <tr><td colspan="5" class="text-muted text-center py-4">No announcements yet.</td></tr>
+                                }
+                                @foreach (var a in Model.Announcements)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">@a.Title</div>
+                                            <div class="text-muted small text-truncate" style="max-width: 300px;">@a.Message</div>
+                                        </td>
+                                        <td><span class="badge bg-secondary">@a.Audience</span></td>
+                                        <td class="small text-muted">@a.PublishDate.ToString("dd MMM yyyy")</td>
+                                        <td>
+                                            @if (a.IsActive)
+                                            {
+                                                <span class="status-badge badge-active">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status-badge badge-inactive">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#announcementModal"
+                                                    data-id="@a.Id" data-title="@a.Title" data-message="@a.Message"
+                                                    data-audience="@a.Audience" data-date="@a.PublishDate.ToString("yyyy-MM-dd")"
+                                                    data-active="@(a.IsActive ? "true" : "false")">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <form method="post" asp-page-handler="ToggleAnnouncement" asp-route-id="@a.Id" class="d-inline">
+                                                @if (a.IsActive)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-quiet-danger btn-action" title="Deactivate"><i class="fa-solid fa-ban"></i></button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success btn-action" title="Activate"><i class="fa-solid fa-check"></i></button>
+                                                }
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ADD/EDIT PROMOTION MODAL -->
+    <div class="modal fade" id="promoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="promoModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Create Promotion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SavePromo" id="promoForm">
+                        <input type="hidden" name="promo.Id" id="promoId" value="0" />
+                        
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Promotion Title</label>
+                                <input type="text" class="form-control" name="promo.Title" id="promoTitle" placeholder="e.g., Summer Pasta Special" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="promo.Description" id="promoDescription" rows="2" placeholder="Brief details about the offer..." required></textarea>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Discount Type</label>
+                                <select class="form-select" name="promo.DiscountType" id="promoType">
+                                    <option value="Percent">Percentage (%)</option>
+                                    <option value="Fixed">Fixed Amount (RM)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Discount Value</label>
+                                <input type="number" step="0.01" min="0.01" class="form-control" name="promo.DiscountValue" id="promoValue" placeholder="e.g., 15 or 10.00" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Promo Code (Optional)</label>
+                                <input type="text" class="form-control" name="promo.PromoCode" id="promoCode" placeholder="e.g., WELCOME15">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Applies To</label>
+                                <select class="form-select" name="promo.CategoryId" id="promoCategory">
+                                    <option value="">All Menu Items</option>
+                                    @foreach (var c in Model.Categories)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" class="form-control" name="promo.StartDate" id="promoStart" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Date</label>
+                                <input type="date" class="form-control" name="promo.EndDate" id="promoEnd" required>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" name="promo.IsActive" value="true" id="promoActive" checked>
+                                    <label class="form-check-label fw-semibold" for="promoActive">Promotion is Active</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="notify" value="true" id="promoNotify">
+                                    <label class="form-check-label fw-semibold" for="promoNotify">Send to all customers as a notification</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Promotion</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT ANNOUNCEMENT MODAL -->
+    <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="announcementModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">New Announcement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveAnnouncement" id="announcementForm">
+                        <input type="hidden" name="announcement.Id" id="announcementId" value="0" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" name="announcement.Title" id="announcementTitle" placeholder="e.g., Holiday Hours Update" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message</label>
+                            <textarea class="form-control" name="announcement.Message" id="announcementMessage" rows="4" placeholder="We will be closed on..." required></textarea>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Audience</label>
+                                <select class="form-select" name="announcement.Audience" id="announcementAudience">
+                                    <option value="Customers">All Customers</option>
+                                    <option value="Staff">Staff Only</option>
+                                    <option value="All">Everyone</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Publish Date</label>
+                                <input type="date" class="form-control" name="announcement.PublishDate" id="announcementDate" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="announcement.IsActive" value="true" id="announcementActive" checked>
+                            <label class="form-check-label fw-semibold" for="announcementActive">Announcement is Active</label>
+                        </div>
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" name="sendNotification" value="true" id="announcementNotify">
+                            <label class="form-check-label fw-semibold" for="announcementNotify">Send as real-time notification</label>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Publish Announcement</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Pre-fill Promo Modal for Edit
+        document.getElementById('promoModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            
+            document.getElementById('promoModalTitle').innerText = editing ? 'Edit Promotion' : 'Create Promotion';
+            document.getElementById('promoId').value = editing ? b.id : 0;
+            document.getElementById('promoTitle').value = editing ? (b.title || '') : '';
+            document.getElementById('promoDescription').value = editing ? (b.description || '') : '';
+            document.getElementById('promoType').value = editing ? b.type : 'Percent';
+            document.getElementById('promoValue').value = editing ? b.value : '';
+            document.getElementById('promoCode').value = editing ? (b.code || '') : '';
+            document.getElementById('promoStart').value = editing ? b.start : '';
+            document.getElementById('promoEnd').value = editing ? b.end : '';
+            document.getElementById('promoActive').checked = editing ? b.active === 'true' : true;
+            document.getElementById('promoCategory').value = editing ? (b.category || '') : '';
+            
+            // Hide notify checkbox when editing
+            document.getElementById('promoNotify').closest('.form-check').style.display = editing ? 'none' : 'block';
+        });
+
+        // Pre-fill Announcement Modal for Edit
+        document.getElementById('announcementModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            
+            document.getElementById('announcementModalTitle').innerText = editing ? 'Edit Announcement' : 'New Announcement';
+            document.getElementById('announcementId').value = editing ? b.id : 0;
+            document.getElementById('announcementTitle').value = editing ? (b.title || '') : '';
+            document.getElementById('announcementMessage').value = editing ? (b.message || '') : '';
+            document.getElementById('announcementAudience').value = editing ? b.audience : 'Customers';
+            document.getElementById('announcementDate').value = editing ? b.date : new Date().toISOString().split('T')[0];
+            document.getElementById('announcementActive').checked = editing ? b.active === 'true' : true;
+            
+            // Hide notify checkbox when editing
+            document.getElementById('announcementNotify').closest('.form-check').style.display = editing ? 'none' : 'block';
+        });
+
+        // Promo codes are stored in capitals
+        document.getElementById('promoCode').addEventListener('input', e => e.target.value = e.target.value.toUpperCase().replace(/\s/g, ''));
+
+        // Re-open the Announcements tab after saving one
+        @if (Model.Tab == "announcements")
+        {
+            <text>bootstrap.Tab.getOrCreateInstance(document.getElementById('announcements-tab')).show();</text>
+        }
+
+        @if (Model.Message != null || Model.Error != null)
+        {
+            <text>new bootstrap.Toast(document.getElementById('resultToast')).show();</text>
+        }
+    </script>
+</body>
+</html>

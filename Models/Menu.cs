@@ -66,20 +66,42 @@ namespace WebApplication2.Models
         [StringLength(500)]
         public string? Description { get; set; }
 
+        // Percent: DiscountPercent is used (e.g. 15 = 15% off)
+        // Fixed:   DiscountAmount is used (RM off each item, or off the whole order)
+        public PromotionDiscountType DiscountType { get; set; } = PromotionDiscountType.Percent;
+
         [Range(0, 100)]
         [Display(Name = "Discount %")]
         public decimal DiscountPercent { get; set; }
+
+        [Range(0, 10000)]
+        [Display(Name = "Discount (RM)")]
+        public decimal DiscountAmount { get; set; }
+
+        // Optional: when set, the customer must enter this code at checkout ("Auto" when empty)
+        [StringLength(30)]
+        public string? PromoCode { get; set; }
 
         public DateTime StartDate { get; set; } = DateTime.Today;
         public DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
 
         public bool IsActive { get; set; } = true;
 
+        // Scope: one menu item, one category, or (both null) the whole order
         public int? MenuItemId { get; set; }
         public MenuItem? MenuItem { get; set; }
+
+        public int? MenuCategoryId { get; set; }
+        public MenuCategory? MenuCategory { get; set; }
 
         [NotMapped]
         public bool IsCurrentlyValid =>
             IsActive && DateTime.Today >= StartDate.Date && DateTime.Today <= EndDate.Date;
+
+        // "15% off" / "RM 10.00 off"
+        [NotMapped]
+        public string DiscountLabel => DiscountType == PromotionDiscountType.Fixed
+            ? $"RM {DiscountAmount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)} off"
+            : $"{DiscountPercent:0.##}% off";
     }
 }

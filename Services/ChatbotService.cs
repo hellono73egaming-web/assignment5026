@@ -12,7 +12,7 @@ namespace WebApplication2.Services
     // What the chat widget shows: the answer, an optional button, and quick-reply chips
     public record ChatReply(string Text, List<string> Suggestions, string? Link = null, string? LinkText = null);
 
-    // Rule-based assistant: works out the customer's INTENT from keywords, then answers
+    // "Tony", Artie's rule-based assistant: works out the customer's INTENT from keywords, then answers
     // with LIVE data from the database (opening hours, their booking, their order, menu prices,
     // current promotions, recommendations). No external AI service or API key is needed.
     public class ChatbotService : IChatbotService
@@ -33,7 +33,23 @@ namespace WebApplication2.Services
             _promotions = promotions;
         }
 
+        // Tony's catchphrase: added to about 1 in 4 answers, just for fun
+        private static readonly string[] Catchphrases =
+        {
+            "Fuhgeddaboudit.",
+            "Fuhgeddaboudit, Tony's got you.",
+            "Anything else? Fuhgeddaboudit, just ask."
+        };
+
         public async Task<ChatReply> ReplyAsync(string message, string? customerId)
+        {
+            var reply = await AnswerAsync(message, customerId);
+            if (Random.Shared.Next(4) == 0)
+                reply = reply with { Text = reply.Text + "\n" + Catchphrases[Random.Shared.Next(Catchphrases.Length)] };
+            return reply;
+        }
+
+        private async Task<ChatReply> AnswerAsync(string message, string? customerId)
         {
             var text = (message ?? string.Empty).Trim();
             if (text.Length == 0) return Help();
@@ -62,13 +78,13 @@ namespace WebApplication2.Services
 
         // ---------------- intents ----------------
         private static ChatReply Greeting() =>
-            new("Ciao! I'm Artie's assistant. I can help with bookings, the menu, your order and our opening hours.", DefaultChips);
+            new("Hey, I'm Tony! Welcome to Artie's. I can help with bookings, the menu, your order and our opening hours. What can I get you?", DefaultChips);
 
         private static ChatReply Help() =>
-            new("Ask me about opening hours, booking a table, dish prices, promotions or your order status.", DefaultChips);
+            new("Tony here! Ask me about opening hours, booking a table, dish prices, promotions or your order status.", DefaultChips);
 
         private static ChatReply Fallback() =>
-            new("Sorry, I didn't quite get that. Try one of these, or ask about a dish by name.", DefaultChips);
+            new("Sorry, Tony didn't quite catch that. Try one of these, or ask me about a dish by name.", DefaultChips);
 
         private async Task<ChatReply> OpeningHoursAsync()
         {
@@ -154,8 +170,9 @@ namespace WebApplication2.Services
                 return new("There are no promotions running right now. Check back soon!", new() { "Recommend a dish" });
 
             var lines = promos.Take(5).Select(p =>
-                $"• {p.Title}: {p.DiscountPercent:0.##}% off {(p.MenuItem != null ? p.MenuItem.Name : "your order")} until {p.EndDate:d MMM}");
-            return new("Current promotions (applied automatically at checkout):\n" + string.Join("\n", lines),
+                $"• {p.Title}: {p.DiscountLabel} {(p.MenuItem != null ? p.MenuItem.Name : p.MenuCategory != null ? p.MenuCategory.Name : "your order")} until {p.EndDate:d MMM}"
+                + (p.PromoCode != null ? $" (code {p.PromoCode})" : ""));
+            return new("Current promotions (applied at checkout):\n" + string.Join("\n", lines),
                        new() { "Recommend a dish" }, "/CustomerPanel/Menu", "Order now");
         }
 
@@ -223,8 +240,8 @@ namespace WebApplication2.Services
         }
 
         private static ChatReply PaymentHelp() =>
-            new("You pay at the counter after your meal, with cash or e-wallet. Our staff will confirm the payment "
-              + "and your receipt will show as PAID in My Orders.",
+            new("You can pay online at checkout (card, e-wallet or online banking) or at the counter after your meal "
+              + "with cash or e-wallet. Every paid order has a receipt in My Orders.",
                 new() { "My order status" }, "/CustomerPanel/MyOrders", "My orders");
 
         private async Task<ChatReply> ContactAsync()

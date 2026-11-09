@@ -26,6 +26,30 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// Staff and admin have no link on the public pages: they go straight to /Identity/Account/StaffLogin.
+// If a signed-out user opens a staff/admin page, send them to Staff Login (not the customer login).
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        var path = context.Request.Path;
+        if (path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;   // fetch() calls get 401, not an HTML page
+        }
+        else if (path.StartsWithSegments("/AdminPanel") || path.StartsWithSegments("/StaffPanel"))
+        {
+            var returnUrl = Uri.EscapeDataString(path + context.Request.QueryString);
+            context.Response.Redirect("/Identity/Account/StaffLogin?returnUrl=" + returnUrl);
+        }
+        else
+        {
+            context.Response.Redirect(context.RedirectUri);
+        }
+        return Task.CompletedTask;
+    };
+});
+
 // External logins (Google / Facebook / Microsoft). Keys live in User Secrets, NOT in source code.
 // A provider is only switched on if its keys exist, so the app still runs without them.
 var auth = builder.Services.AddAuthentication();

@@ -96,6 +96,9 @@ namespace WebApplication2.Models
 
         public bool IsActive { get; set; } = true;
 
+        // Who the announcement is for (AD15)
+        public AnnouncementAudience Audience { get; set; } = AnnouncementAudience.Customers;
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

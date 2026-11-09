@@ -64,6 +64,7 @@ namespace WebApplication2.Services
             a.StartDate = input.StartDate.Date;
             a.EndDate = input.EndDate?.Date;
             a.IsActive = input.IsActive;
+            a.Audience = input.Audience;
 
             await _db.SaveChangesAsync();
 
@@ -97,7 +98,11 @@ namespace WebApplication2.Services
             if (!a.IsActive) return ServiceResult<int>.Fail("Switch the announcement on before publishing it.");
 
             var message = a.Content.Length > 300 ? a.Content[..300] + "..." : a.Content;
-            var sent = await _notifications.SendToAllCustomersAsync(a.Title, message, "/CustomerPanel/Index", NotificationType.General);
+            var sent = 0;
+            if (a.Audience != AnnouncementAudience.Staff)
+                sent += await _notifications.SendToAllCustomersAsync(a.Title, message, "/CustomerPanel/Index", NotificationType.General);
+            if (a.Audience != AnnouncementAudience.Customers)
+                sent += await _notifications.SendToAllStaffAsync(a.Title, message, "/StaffPanel/Index");
             return ServiceResult<int>.Ok(sent);
         }
     }

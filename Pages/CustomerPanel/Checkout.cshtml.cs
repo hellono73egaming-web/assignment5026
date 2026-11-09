@@ -10,8 +10,10 @@ namespace WebApplication2.Pages.CustomerPanel
 {
     // CS10/CS11 (place order), CS14 (payment record), Intermediate #3 (receipt).
     // Flow: Menu cart -> Review (server re-prices everything) -> Confirm -> Receipt.
-    // Payment method is "Pay at Counter": a Pending cash payment is recorded,
-    // and staff mark it Paid later.
+    // Payment: "Counter" records a Pending cash payment that staff settle later;
+    // "Online" (Intermediate 4) pays straight away through PaymentService.PayOnlineAsync.
+    // The online payment is simulated: only the chosen METHOD is sent to the server,
+    // card numbers are never posted or stored.
     public class CheckoutModel : PageModel
     {
         private readonly IOrderService _orders;
@@ -34,6 +36,12 @@ namespace WebApplication2.Pages.CustomerPanel
         [BindProperty] public int? ReservationId { get; set; }
         [BindProperty] public string? TableNumber { get; set; }
         [BindProperty] public string? Notes { get; set; }
+        [BindProperty] public string? PromoCode { get; set; }                           // optional promotion code
+        [BindProperty] public string PaymentOption { get; set; } = "Counter";          // "Counter" or "Online"
+        [BindProperty] public PaymentMethod OnlineMethod { get; set; } = PaymentMethod.Card;
+
+        [TempData] public string? PaymentMessage { get; set; }
+        [TempData] public string? PaymentError { get; set; }
 
         public OrderQuote Quote { get; set; } = new();
         public Reservation? LinkedReservation { get; set; }
@@ -52,8 +60,10 @@ namespace WebApplication2.Pages.CustomerPanel
             var lines = ParseCart(CartJson);
             if (lines.Count == 0) return RedirectToPage("/CustomerPanel/Menu");
 
-            Quote = await _orders.CalculateAsync(lines);
+            PromoCode = string.IsNullOrWhiteSpace(PromoCode) ? null : PromoCode.Trim().ToUpperInvariant();
+            Quote = await _orders.CalculateAsync(lines, PromoCode);
             if (Quote.Problems.Count > 0) Error = string.Join(" ", Quote.Problems);
+            if (Quote.PromoCodeError != null) PromoCode = null;   // don't carry a code that didn't work
             if (Quote.IsEmpty) Error ??= "Your cart is empty.";
 
             return Page();
@@ -73,17 +83,35 @@ namespace WebApplication2.Pages.CustomerPanel
             if (!string.IsNullOrWhiteSpace(TableNumber) && ReservationId == null)
                 notes = $"Table {TableNumber.Trim().ToUpper()}" + (string.IsNullOrEmpty(notes) ? "" : $". {notes}");
 
-            var result = await _orders.PlaceOrderAsync(userId, lines, OrderType, ReservationId, notes);
+            var result = await _orders.PlaceOrderAsync(userId, lines, OrderType, ReservationId, notes, PromoCode);
             if (!result.Success)
             {
                 await LoadCommonAsync();
-                Quote = await _orders.CalculateAsync(lines);
+                Quote = await _orders.CalculateAsync(lines, PromoCode);
                 Error = result.Error;
                 return Page();
             }
 
             var order = result.Value!;
-            await _payments.RecordPaymentAsync(order.Id, PaymentMethod.Cash, PaymentStatus.Pending, "Pay at counter");
+
+            if (PaymentOption == "Online")
+            {
+                var paid = await _payments.PayOnlineAsync(order.Id, userId, OnlineMethod);
+                if (paid.Success)
+                {
+                    PaymentMessage = $"Payment successful. Reference {paid.Value!.TransactionReference}.";
+                }
+                else
+                {
+                    // Order is still placed; fall back to paying at the counter
+                    await _payments.RecordPaymentAsync(order.Id, PaymentMethod.Cash, PaymentStatus.Pending, "Pay at counter");
+                    PaymentError = $"Online payment failed ({paid.Error}). You can pay at the counter instead.";
+                }
+            }
+            else
+            {
+                await _payments.RecordPaymentAsync(order.Id, PaymentMethod.Cash, PaymentStatus.Pending, "Pay at counter");
+            }
 
             // Post/Redirect/Get: refreshing the receipt won't place the order twice
             return RedirectToPage(new { handler = "Receipt", orderId = order.Id });
@@ -103,7 +131,27 @@ namespace WebApplication2.Pages.CustomerPanel
             return Page();
         }
 
+        // Pay an existing unpaid order online (from the receipt or My Orders)
+        public async Task<IActionResult> OnPostPayOnlineAsync(int orderId, PaymentMethod method)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var paid = await _payments.PayOnlineAsync(orderId, userId, method);
+
+            if (paid.Success) PaymentMessage = $"Payment successful. Reference {paid.Value!.TransactionReference}.";
+            else PaymentError = paid.Error;
+
+            return RedirectToPage(new { handler = "Receipt", orderId });
+        }
+
         // ---- helpers ----
+        public static string MethodName(PaymentMethod m) => m switch
+        {
+            PaymentMethod.Card => "Card",
+            PaymentMethod.EWallet => "E-Wallet",
+            PaymentMethod.OnlineBanking => "Online Banking",
+            _ => "Cash"
+        };
+
         private async Task LoadCommonAsync()
         {
             Settings = await _reservations.GetSettingsAsync();

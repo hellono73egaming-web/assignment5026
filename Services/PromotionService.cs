@@ -23,6 +23,7 @@ namespace WebApplication2.Services
         public Task<List<Promotion>> GetAllAsync() =>
             _db.Promotions
                .Include(p => p.MenuItem)
+               .Include(p => p.MenuCategory)
                .OrderByDescending(p => p.IsActive)
                .ThenByDescending(p => p.StartDate)
                .AsNoTracking()
@@ -34,6 +35,7 @@ namespace WebApplication2.Services
             var today = DateTime.Today;
             return _db.Promotions
                .Include(p => p.MenuItem)
+               .Include(p => p.MenuCategory)
                .Where(p => p.IsActive && p.StartDate.Date <= today && p.EndDate.Date >= today)
                .OrderByDescending(p => p.DiscountPercent)
                .AsNoTracking()
@@ -41,7 +43,7 @@ namespace WebApplication2.Services
         }
 
         public Task<Promotion?> GetAsync(int id) =>
-            _db.Promotions.Include(p => p.MenuItem).FirstOrDefaultAsync(p => p.Id == id);
+            _db.Promotions.Include(p => p.MenuItem).Include(p => p.MenuCategory).FirstOrDefaultAsync(p => p.Id == id);
 
         public async Task<ServiceResult<Promotion>> SaveAsync(Promotion input, bool notifyCustomers)
         {
@@ -51,8 +53,19 @@ namespace WebApplication2.Services
                 return ServiceResult<Promotion>.Fail("Title must be between 3 and 100 characters.");
             if (input.Description?.Length > 500)
                 return ServiceResult<Promotion>.Fail("Description cannot be longer than 500 characters.");
-            if (input.DiscountPercent <= 0 || input.DiscountPercent > 100)
-                return ServiceResult<Promotion>.Fail("Discount must be more than 0% and at most 100%.");
+            if (input.DiscountType == PromotionDiscountType.Percent && (input.DiscountPercent <= 0 || input.DiscountPercent > 100))
+                return ServiceResult<Promotion>.Fail("Percentage discount must be more than 0% and at most 100%.");
+            if (input.DiscountType == PromotionDiscountType.Fixed && (input.DiscountAmount <= 0 || input.DiscountAmount > 10000))
+                return ServiceResult<Promotion>.Fail("Fixed discount must be more than RM 0.");
+
+            // Promo code: optional, letters/numbers only, unique
+            var code = string.IsNullOrWhiteSpace(input.PromoCode) ? null : input.PromoCode.Trim().ToUpperInvariant();
+            if (code != null && !System.Text.RegularExpressions.Regex.IsMatch(code, "^[A-Z0-9]{3,30}$"))
+                return ServiceResult<Promotion>.Fail("Promo code must be 3-30 letters or numbers (no spaces).");
+            if (code != null && await _db.Promotions.AnyAsync(p => p.Id != input.Id && p.PromoCode == code))
+                return ServiceResult<Promotion>.Fail($"Promo code {code} is already used by another promotion.");
+            if (input.MenuCategoryId != null && !await _db.MenuCategories.AnyAsync(c => c.Id == input.MenuCategoryId))
+                return ServiceResult<Promotion>.Fail("The selected category no longer exists.");
             if (input.EndDate.Date < input.StartDate.Date)
                 return ServiceResult<Promotion>.Fail("End date cannot be before the start date.");
             if (input.MenuItemId != null && !await _db.MenuItems.AnyAsync(m => m.Id == input.MenuItemId))
@@ -72,7 +85,11 @@ namespace WebApplication2.Services
 
             promo.Title = title;
             promo.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
-            promo.DiscountPercent = Math.Round(input.DiscountPercent, 2);
+            promo.DiscountType = input.DiscountType;
+            promo.DiscountPercent = input.DiscountType == PromotionDiscountType.Percent ? Math.Round(input.DiscountPercent, 2) : 0;
+            promo.DiscountAmount = input.DiscountType == PromotionDiscountType.Fixed ? Math.Round(input.DiscountAmount, 2) : 0;
+            promo.PromoCode = code;
+            promo.MenuCategoryId = input.MenuItemId == null ? input.MenuCategoryId : null;   // one scope only
             promo.StartDate = input.StartDate.Date;
             promo.EndDate = input.EndDate.Date;
             promo.MenuItemId = input.MenuItemId;
@@ -116,8 +133,11 @@ namespace WebApplication2.Services
             if (!promo.IsActive || promo.EndDate.Date < DateTime.Today)
                 return ServiceResult<int>.Fail("Only active, unexpired promotions can be sent.");
 
-            var target = promo.MenuItem != null ? $"on {promo.MenuItem.Name}" : "on your whole order";
-            var message = $"{promo.DiscountPercent:0.##}% off {target}, {promo.StartDate:d MMM} - {promo.EndDate:d MMM}."
+            var target = promo.MenuItem != null ? $"on {promo.MenuItem.Name}"
+                       : promo.MenuCategory != null ? $"on all {promo.MenuCategory.Name}"
+                       : "on your whole order";
+            var message = $"{promo.DiscountLabel} {target}, {promo.StartDate:d MMM} - {promo.EndDate:d MMM}."
+                          + (promo.PromoCode != null ? $" Use code {promo.PromoCode} at checkout." : "")
                           + (string.IsNullOrEmpty(promo.Description) ? "" : " " + promo.Description);
 
             var sent = await _notifications.SendToAllCustomersAsync(promo.Title, message, "/CustomerPanel/Menu");

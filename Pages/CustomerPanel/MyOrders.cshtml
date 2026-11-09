@@ -79,6 +79,8 @@
         .btn-gold:hover { background-color: var(--gold-dark); color: white; }
         .btn-outline-green { border: 1.5px solid var(--primary-green); color: var(--primary-green); font-weight: 600; border-radius: 8px; }
         .btn-outline-green:hover { background: var(--primary-green); color: white; }
+        .btn-green { background: var(--primary-green); border: 1.5px solid var(--primary-green); color: white; font-weight: 600; border-radius: 8px; }
+        .btn-green:hover { opacity: .9; color: white; }
         .btn-review { border: 1.5px solid #ffc107; color: #856404; background: #fff3cd; font-weight: 600; border-radius: 8px; }
         .btn-review:hover { background: #ffc107; color: #000; }
 
@@ -164,7 +166,7 @@
                     </div>
                     <div class="col-md-4 text-md-end">
                         <h4 class="fw-bold mb-0" style="color: var(--primary-green);">RM @o.Total.ToString("N2")</h4>
-                        <small class="text-muted">@(MyOrdersModel.IsPaid(o) ? "Paid" : "Pay at Counter")</small>
+                        <small class="text-muted">@(MyOrdersModel.IsPaid(o) ? "Paid by " + MyOrdersModel.MethodLabel(o) : "Unpaid · pay online or at counter")</small>
                     </div>
                 </div>
 
@@ -190,6 +192,12 @@
                               onsubmit="return confirm('Cancel this order?');">
                             <button type="submit" class="btn btn-sm btn-outline-danger px-3"><i class="fa-solid fa-ban me-1"></i> Cancel Order</button>
                         </form>
+                    }
+                    @if (!MyOrdersModel.IsPaid(o))
+                    {
+                        <a class="btn btn-sm btn-green px-4" asp-page="/CustomerPanel/Checkout" asp-page-handler="Receipt" asp-route-orderId="@o.Id">
+                            <i class="fa-solid fa-credit-card me-1"></i> Pay Online
+                        </a>
                     }
                     <button type="button" class="btn btn-sm btn-outline-green px-4" data-bs-toggle="modal" data-bs-target="#receipt-@o.Id">
                         <i class="fa-solid fa-receipt me-1"></i> View Bill
@@ -363,5 +371,7 @@
         const badge = document.getElementById('cartBadge');
         if(badge) badge.innerText = totalQty;
     </script>
+    <!-- Tony chat assistant -->
+    <partial name="_ChatWidget" />
 </body>
 </html>

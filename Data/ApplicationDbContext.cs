@@ -57,6 +57,12 @@ namespace WebApplication2.Data
 
             builder.Entity<RestaurantSetting>().Property(s => s.ServiceTaxPercent).HasPrecision(5, 2);
             builder.Entity<Promotion>().Property(p => p.DiscountPercent).HasPrecision(5, 2);
+            builder.Entity<Promotion>().Property(p => p.DiscountAmount).HasPrecision(10, 2);
+            builder.Entity<Promotion>()
+                .HasOne(p => p.MenuCategory).WithMany()
+                .HasForeignKey(p => p.MenuCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);   // MenuService removes a category's promotions before deleting it
+            builder.Entity<Promotion>().HasIndex(p => p.PromoCode);
 
             // Unique constraints
             builder.Entity<RestaurantTable>().HasIndex(t => t.TableNumber).IsUnique();

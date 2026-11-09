@@ -5,9 +5,10 @@ namespace WebApplication2.Services.Interfaces
     // Abstraction for ordering and order processing (CS10, CS11, CS13, CS16, RS9-RS12).
     public interface IOrderService
     {
-        Task<OrderQuote> CalculateAsync(IEnumerable<CartLine> cartLines);
+        Task<OrderQuote> CalculateAsync(IEnumerable<CartLine> cartLines, string? promoCode = null);
         Task<ServiceResult<Order>> PlaceOrderAsync(string customerId, IEnumerable<CartLine> cartLines,
-                                                   OrderType orderType, int? reservationId = null, string? notes = null);
+                                                   OrderType orderType, int? reservationId = null, string? notes = null,
+                                                   string? promoCode = null);
         Task<ServiceResult> CancelByCustomerAsync(int orderId, string customerId);
         Task<ServiceResult> UpdateStatusAsync(int orderId, OrderStatus newStatus);
 

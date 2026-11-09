@@ -28,6 +28,8 @@ namespace WebApplication2.Services
         public decimal Subtotal { get; set; }
         public decimal Discount { get; set; }
         public string? OrderPromotionTitle { get; set; }
+        public string? AppliedPromoCode { get; set; }     // code the customer entered and that gave a discount
+        public string? PromoCodeError { get; set; }       // e.g. "Code XYZ is invalid or has expired."
         public decimal TaxPercent { get; set; }
         public decimal Tax { get; set; }
         public decimal Total { get; set; }
@@ -65,7 +67,10 @@ namespace WebApplication2.Services
         // ------------------------------------------------------------
         // PRICING - prices ALWAYS come from the database, never from the browser
         // ------------------------------------------------------------
-        public async Task<OrderQuote> CalculateAsync(IEnumerable<CartLine> cartLines)
+        // Promotions: per item, per category, or whole order; Percent or Fixed RM.
+        // Promotions with a PromoCode only count when that code is entered at checkout.
+        // Each line gets its single best promotion, then the best whole-order promotion is applied.
+        public async Task<OrderQuote> CalculateAsync(IEnumerable<CartLine> cartLines, string? promoCode = null)
         {
             var quote = new OrderQuote();
             var lines = cartLines.Where(l => l.Quantity > 0).ToList();
@@ -76,13 +81,18 @@ namespace WebApplication2.Services
                 .Where(m => ids.Contains(m.Id))
                 .ToDictionaryAsync(m => m.Id);
 
-            // Load active promotions, then check dates in memory
+            // Load active promotions, then check dates and codes in memory
             var today = DateTime.Today;
+            var code = string.IsNullOrWhiteSpace(promoCode) ? null : promoCode.Trim().ToUpperInvariant();
             var promotions = (await _db.Promotions.AsNoTracking()
                     .Where(p => p.IsActive && p.StartDate <= today && p.EndDate >= today)
                     .ToListAsync())
                 .Where(p => p.IsCurrentlyValid)
+                .Where(p => p.PromoCode == null || (code != null && p.PromoCode.ToUpperInvariant() == code))
                 .ToList();
+
+            if (code != null && !promotions.Any(p => p.PromoCode != null))
+                quote.PromoCodeError = $"Code {code} is invalid or has expired.";
 
             foreach (var line in lines)
             {
@@ -97,12 +107,12 @@ namespace WebApplication2.Services
                     continue;
                 }
 
-                var gross = item.Price * line.Quantity;
 
-                // Best item-level promotion for this item
+
+                // Best promotion for this item: one for the item itself, or for its category
                 var promo = promotions
-                    .Where(p => p.MenuItemId == item.Id)
-                    .OrderByDescending(p => p.DiscountPercent)
+                    .Where(p => p.MenuItemId == item.Id || (p.MenuItemId == null && p.MenuCategoryId == item.MenuCategoryId))
+                    .OrderByDescending(p => LineDiscount(p, item.Price, line.Quantity))
                     .FirstOrDefault();
 
                 quote.Lines.Add(new QuoteLine
@@ -113,7 +123,7 @@ namespace WebApplication2.Services
                     ItemType = item.ItemType,
                     Quantity = line.Quantity,
                     UnitPrice = item.Price,
-                    Discount = promo == null ? 0 : Round(gross * promo.DiscountPercent / 100),
+                    Discount = promo == null ? 0 : LineDiscount(promo, item.Price, line.Quantity),
                     PromotionTitle = promo?.Title,
                     Remarks = line.Remarks
                 });
@@ -122,18 +132,26 @@ namespace WebApplication2.Services
             quote.Subtotal = quote.Lines.Sum(l => l.UnitPrice * l.Quantity);
             var itemDiscounts = quote.Lines.Sum(l => l.Discount);
 
-            // Best whole-order promotion (MenuItemId == null) on what is left
+            // Best whole-order promotion (no item, no category) on what is left
+            var remaining = quote.Subtotal - itemDiscounts;
             var orderPromo = promotions
-                .Where(p => p.MenuItemId == null)
-                .OrderByDescending(p => p.DiscountPercent)
+                .Where(p => p.MenuItemId == null && p.MenuCategoryId == null)
+                .OrderByDescending(p => OrderDiscount(p, remaining))
                 .FirstOrDefault();
 
-            var orderDiscount = orderPromo == null
-                ? 0
-                : Round((quote.Subtotal - itemDiscounts) * orderPromo.DiscountPercent / 100);
+            var orderDiscount = orderPromo == null ? 0 : OrderDiscount(orderPromo, remaining);
 
             quote.OrderPromotionTitle = orderPromo?.Title;
             quote.Discount = itemDiscounts + orderDiscount;
+
+            // Did the entered code actually save anything?
+            if (code != null && quote.PromoCodeError == null)
+            {
+                var codeUsed = quote.Lines.Any(l => l.Discount > 0 && promotions.Any(p => p.PromoCode != null && p.Title == l.PromotionTitle))
+                            || (orderDiscount > 0 && orderPromo?.PromoCode != null);
+                if (codeUsed) quote.AppliedPromoCode = code;
+                else quote.PromoCodeError = $"Code {code} doesn't apply to the items in your cart.";
+            }
 
             var settings = await _db.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
             quote.TaxPercent = settings?.ServiceTaxPercent ?? 0;
@@ -150,9 +168,9 @@ namespace WebApplication2.Services
         // CS10 / CS11 - turn the cart into an order
         public async Task<ServiceResult<Order>> PlaceOrderAsync(string customerId, IEnumerable<CartLine> cartLines,
                                                                 OrderType orderType, int? reservationId = null,
-                                                                string? notes = null)
+                                                                string? notes = null, string? promoCode = null)
         {
-            var quote = await CalculateAsync(cartLines);
+            var quote = await CalculateAsync(cartLines, promoCode);
 
             if (quote.Problems.Count > 0)
                 return ServiceResult<Order>.Fail(string.Join(" ", quote.Problems) + " Please review your cart.");
@@ -315,5 +333,17 @@ namespace WebApplication2.Services
         };
 
         private static decimal Round(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+        // Discount a promotion gives on one cart line (Fixed = RM off each unit, never below RM 0)
+        private static decimal LineDiscount(Promotion p, decimal unitPrice, int qty) =>
+            p.DiscountType == PromotionDiscountType.Fixed
+                ? Round(Math.Min(p.DiscountAmount, unitPrice) * qty)
+                : Round(unitPrice * qty * p.DiscountPercent / 100);
+
+        // Discount a whole-order promotion gives on the amount left after item discounts
+        private static decimal OrderDiscount(Promotion p, decimal amount) =>
+            p.DiscountType == PromotionDiscountType.Fixed
+                ? Round(Math.Min(p.DiscountAmount, amount))
+                : Round(amount * p.DiscountPercent / 100);
     }
 }

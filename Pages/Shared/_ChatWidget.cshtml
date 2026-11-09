@@ -1,0 +1,171 @@
+@* Tony - Artie's chat assistant (Advanced 6).
+   Shared partial: added to customer pages with <partial name="_ChatWidget" />.
+   Talks to POST /api/chat (ChatbotService). Styled with the same palette and fonts as the rest of the site.
+   Replies are inserted with textContent (never innerHTML) so nothing a user types can run as HTML. *@
+
+<style>
+    #tonyFab {
+        position: fixed; right: 24px; bottom: 24px; z-index: 1040;
+        width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--accent-gold, #D4A373);
+        background: var(--primary-green, #1E3F20); color: var(--bg-cream, #F9F6F0);
+        display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+        box-shadow: 0 8px 22px rgba(0,0,0,.22); cursor: pointer; transition: transform .2s, bottom .4s ease;
+    }
+    #tonyFab:hover { transform: scale(1.06); }
+    #tonyFab .tony-badge {
+        position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%;
+        background: var(--accent-gold, #D4A373); color: var(--primary-green, #1E3F20);
+        font-family: 'Playfair Display', serif; font-weight: 700; font-size: .8rem;
+        display: flex; align-items: center; justify-content: center; border: 2px solid #fff;
+    }
+    body:has(.action-bar.show) #tonyFab, body:has(.action-bar.show) #tonyPanel { bottom: 110px; }
+
+    #tonyPanel {
+        position: fixed; right: 24px; bottom: 100px; z-index: 1045; width: 360px; max-width: calc(100vw - 32px);
+        height: 520px; max-height: calc(100vh - 140px); background: #fff; border-radius: 16px;
+        border: 1px solid var(--line, #e8e3d9); box-shadow: 0 12px 34px rgba(0,0,0,.18);
+        display: none; flex-direction: column; overflow: hidden; font-family: 'Inter', sans-serif;
+    }
+    #tonyPanel.open { display: flex; }
+    .tony-head { background: var(--primary-green, #1E3F20); color: #fff; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .tony-avatar {
+        width: 40px; height: 40px; border-radius: 50%; background: var(--accent-gold, #D4A373); color: var(--primary-green, #1E3F20);
+        display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .tony-head .name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.1; }
+    .tony-head .sub { font-size: .75rem; color: #d1d8d2; }
+    .tony-head .btn-close { margin-left: auto; }
+
+    .tony-body { flex: 1; overflow-y: auto; padding: 16px; background: var(--bg-cream, #F9F6F0); }
+    .tony-msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; margin-bottom: 10px; font-size: .9rem; line-height: 1.45; white-space: pre-line; word-wrap: break-word; }
+    .tony-msg.bot { background: #fff; border: 1px solid var(--line, #e8e3d9); border-bottom-left-radius: 4px; color: var(--text-dark, #2C3E50); }
+    .tony-msg.me { background: var(--primary-green, #1E3F20); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+    .tony-link { display: inline-block; margin-top: 8px; font-weight: 600; font-size: .85rem; color: var(--primary-green, #1E3F20); text-decoration: none; border-bottom: 2px solid var(--accent-gold, #D4A373); }
+    .tony-typing { font-size: .8rem; color: var(--muted, #6b7a72); font-style: italic; margin-bottom: 10px; }
+
+    .tony-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px 0; background: #fff; }
+    .tony-chip { border: 1px solid var(--accent-gold, #D4A373); background: #fff; color: var(--primary-green, #1E3F20);
+                 border-radius: 20px; padding: 4px 12px; font-size: .78rem; font-weight: 600; cursor: pointer; }
+    .tony-chip:hover { background: var(--accent-gold, #D4A373); color: var(--primary-green, #1E3F20); }
+
+    .tony-input { display: flex; gap: 8px; padding: 12px; background: #fff; border-top: 1px solid var(--line, #e8e3d9); }
+    .tony-input input { flex: 1; border-radius: 10px; border: 1px solid var(--line, #e8e3d9); padding: 8px 12px; font-size: .9rem; }
+    .tony-input input:focus { outline: none; border-color: var(--accent-gold, #D4A373); box-shadow: 0 0 0 .2rem rgba(212,163,115,.25); }
+    .tony-input button { background: var(--accent-gold, #D4A373); color: var(--primary-green, #1E3F20); border: 0; border-radius: 10px; padding: 0 14px; font-weight: 700; }
+    .tony-input button:hover { background: var(--gold-dark, #b98550); color: #fff; }
+</style>
+
+<button type="button" id="tonyFab" aria-label="Chat with Tony" aria-controls="tonyPanel" aria-expanded="false">
+    <i class="fa-solid fa-user-tie"></i>
+    <span class="tony-badge">T</span>
+</button>
+
+<div id="tonyPanel" role="dialog" aria-label="Chat with Tony">
+    <div class="tony-head">
+        <div class="tony-avatar"><i class="fa-solid fa-user-tie"></i></div>
+        <div>
+            <div class="name">Tony</div>
+            <div class="sub">Artie's assistant &middot; usually replies instantly</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" id="tonyClose" aria-label="Close chat"></button>
+    </div>
+    <div class="tony-body" id="tonyBody" aria-live="polite"></div>
+    <div class="tony-chips" id="tonyChips"></div>
+    <form class="tony-input" id="tonyForm" autocomplete="off">
+        <input type="text" id="tonyText" maxlength="500" placeholder="Ask Tony anything..." aria-label="Message Tony">
+        <button type="submit" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const fab = document.getElementById('tonyFab');
+        const panel = document.getElementById('tonyPanel');
+        const body = document.getElementById('tonyBody');
+        const chips = document.getElementById('tonyChips');
+        const form = document.getElementById('tonyForm');
+        const input = document.getElementById('tonyText');
+        let started = false, busy = false;
+
+        const greeting = {
+            text: "Hey, I'm Tony! Welcome to Artie's.\nI can help you book a table, find a dish, check your order or tell you our opening hours. What can I get you?",
+            suggestions: ["Opening hours", "Book a table", "Recommend a dish", "My order status", "Any promotions?"]
+        };
+
+        function addMessage(text, who, link, linkText) {
+            const div = document.createElement('div');
+            div.className = 'tony-msg ' + who;
+            div.textContent = text;                       // safe: never parsed as HTML
+            if (link && link.startsWith('/')) {          // only links inside this site
+                const a = document.createElement('a');
+                a.href = link; a.className = 'tony-link';
+                a.textContent = (linkText || 'Open') + ' →';
+                div.appendChild(document.createElement('br'));
+                div.appendChild(a);
+            }
+            body.appendChild(div);
+            body.scrollTop = body.scrollHeight;
+        }
+
+        function setChips(list) {
+            chips.innerHTML = '';
+            (list || []).forEach(t => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'tony-chip'; b.textContent = t;
+                b.addEventListener('click', () => send(t));
+                chips.appendChild(b);
+            });
+        }
+
+        function open() {
+            panel.classList.add('open');
+            fab.setAttribute('aria-expanded', 'true');
+            if (!started) { addMessage(greeting.text, 'bot'); setChips(greeting.suggestions); started = true; }
+            input.focus();
+        }
+        function close() { panel.classList.remove('open'); fab.setAttribute('aria-expanded', 'false'); }
+
+        async function send(text) {
+            text = (text || '').trim();
+            if (!text || busy) return;
+            busy = true;
+            addMessage(text, 'me');
+            input.value = '';
+            setChips([]);
+
+            const typing = document.createElement('div');
+            typing.className = 'tony-typing'; typing.textContent = 'Tony is typing...';
+            body.appendChild(typing); body.scrollTop = body.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                typing.remove();
+                if (res.status === 401 || res.redirected) {
+                    addMessage("Please log in again so I can help you.", 'bot', '/Identity/Account/Login', 'Log in');
+                } else if (!res.ok) {
+                    addMessage("Sorry, something went wrong on my side. Please try again.", 'bot');
+                    setChips(greeting.suggestions);
+                } else {
+                    const r = await res.json();
+                    addMessage(r.text, 'bot', r.link, r.linkText);
+                    setChips(r.suggestions);
+                }
+            } catch {
+                typing.remove();
+                addMessage("I can't reach the restaurant right now. Check your connection and try again.", 'bot');
+                setChips(greeting.suggestions);
+            } finally {
+                busy = false;
+            }
+        }
+
+        fab.addEventListener('click', () => panel.classList.contains('open') ? close() : open());
+        document.getElementById('tonyClose').addEventListener('click', close);
+        form.addEventListener('submit', e => { e.preventDefault(); send(input.value); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && panel.classList.contains('open')) close(); });
+    })();
+</script>

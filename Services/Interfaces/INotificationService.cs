@@ -11,6 +11,7 @@ namespace WebApplication2.Services.Interfaces
         Task SendAsync(string userId, string title, string message, NotificationType type, string? link = null);
         Task<int> SendToAllCustomersAsync(string title, string message, string? link = null,
                                           NotificationType type = NotificationType.Promotion);
+        Task<int> SendToAllStaffAsync(string title, string message, string? link = null);
         Task<int> GetUnreadCountAsync(string userId);
         Task<List<Notification>> GetLatestAsync(string userId, int take = 20);
         Task MarkAllReadAsync(string userId);

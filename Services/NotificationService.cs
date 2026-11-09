@@ -58,6 +58,21 @@ namespace WebApplication2.Services
             return customerIds.Count;
         }
 
+        // AD15 - staff-only announcements (all active staff accounts)
+        public async Task<int> SendToAllStaffAsync(string title, string message, string? link = null)
+        {
+            var staffIds = await _db.StaffMembers
+                .Where(s => s.IsActive)
+                .Select(s => s.Id)
+                .ToListAsync();
+
+            foreach (var id in staffIds)
+                Queue(id, title, message, NotificationType.General, link);
+
+            await _db.SaveChangesAsync();
+            return staffIds.Count;
+        }
+
         public Task<int> GetUnreadCountAsync(string userId) =>
             _db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
 
