@@ -104,6 +104,10 @@ builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
 
 var app = builder.Build();
 
@@ -126,6 +130,13 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+// Advanced 6: chatbot endpoint used by the chat widget (POST JSON { "message": "..." }).
+// Logged-in customers only; their user id lets the bot answer "where is my order?" with their own data.
+app.MapPost("/api/chat", async (ChatRequest request, IChatbotService bot,
+                                System.Security.Claims.ClaimsPrincipal user, UserManager<ApplicationUser> users) =>
+        Results.Ok(await bot.ReplyAsync(request.Message, users.GetUserId(user))))
+   .RequireAuthorization("CustomerOnly");
 
 // Create roles, default accounts and sample data
 await DbSeeder.SeedAsync(app.Services);

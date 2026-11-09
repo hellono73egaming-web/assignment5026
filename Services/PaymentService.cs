@@ -5,9 +5,10 @@ using WebApplication2.Services.Interfaces;
 
 namespace WebApplication2.Services
 {
-    // RS13, RS14, CS14, CS22, AD10, Intermediate #3 (receipts) and #4 (online payment + tracking)
-    // Approach: payment logic behind an interface so the simulated gateway can be swapped
-    // for a real provider later (Dependency Inversion, as in eShopOnWeb).
+    // RS13, RS14, CS14, CS22, AD10, Intermediate #3 (receipts) and payment status tracking.
+    // Payment flow: customer pays at the counter (Cash or E-Wallet), staff confirm it in Billing.
+    // Payment logic sits behind an interface so an online gateway could be added later
+    // without changing page code (Dependency Inversion, as in eShopOnWeb).
     public class PaymentService : IPaymentService
     {
         private readonly ApplicationDbContext _db;
@@ -20,27 +21,6 @@ namespace WebApplication2.Services
         {
             _db = db;
             _notifications = notifications;
-        }
-
-        // CS - online payment by the customer.
-        // SIMULATED gateway: no real card is charged. A real system would call
-        // Stripe / iPay88 / Billplz here and use their transaction reference.
-        public async Task<ServiceResult<Payment>> PayOnlineAsync(int orderId, string customerId, PaymentMethod method)
-        {
-            if (method == PaymentMethod.Cash)
-                return ServiceResult<Payment>.Fail("Cash payments are made at the counter.");
-
-            var order = await _db.Orders
-                .Include(o => o.Payment)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
-
-            if (order == null) return ServiceResult<Payment>.Fail("Order not found.");
-            if (order.Status == OrderStatus.Cancelled) return ServiceResult<Payment>.Fail("This order was cancelled.");
-            if (order.Payment?.Status == PaymentStatus.Paid) return ServiceResult<Payment>.Fail("This order is already paid.");
-
-            var transactionRef = $"TXN-{Guid.NewGuid().ToString("N")[..12].ToUpper()}";
-            var payment = await MarkPaidAsync(order, method, transactionRef);
-            return ServiceResult<Payment>.Ok(payment);
         }
 
         // RS13 - staff records a payment (e.g. cash at the counter) or changes its status

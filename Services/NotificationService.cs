@@ -43,7 +43,8 @@ namespace WebApplication2.Services
         }
 
         // CS21 - promotion broadcast to every active customer
-        public async Task<int> SendToAllCustomersAsync(string title, string message, string? link = null)
+        public async Task<int> SendToAllCustomersAsync(string title, string message, string? link = null,
+                                                       NotificationType type = NotificationType.Promotion)
         {
             var customerIds = await _db.Customers
                 .Where(c => c.IsActive)
@@ -51,7 +52,7 @@ namespace WebApplication2.Services
                 .ToListAsync();
 
             foreach (var id in customerIds)
-                Queue(id, title, message, NotificationType.Promotion, link);
+                Queue(id, title, message, type, link);
 
             await _db.SaveChangesAsync();
             return customerIds.Count;
