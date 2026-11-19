@@ -97,6 +97,7 @@
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyReservations">My Reservations</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyOrders">My Orders</a></li>
                     <li class="nav-item"><a class="nav-link active fw-bold" asp-page="/CustomerPanel/Feedback">My Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Rewards">My Rewards</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
                     
                     <!-- Cart Button -->
@@ -170,6 +171,17 @@
                                 <span class="badge bg-success">Submitted @review.CreatedAt.ToString("d MMM yyyy")</span>
                             </div>
                             <p class="mb-0 text-muted fst-italic">"@(review.Comment ?? "No comment provided.")"</p>
+                            @if (!string.IsNullOrWhiteSpace(review.AdminReply))
+                            {
+                                <!-- The restaurant's reply (written on Admin > Reviews) -->
+                                <div class="mt-3 p-3 rounded" style="background: var(--bg-cream); border-left: 3px solid var(--accent-gold);">
+                                    <div class="small fw-bold mb-1" style="color: var(--primary-green);">
+                                        <i class="fa-solid fa-reply me-1"></i>Reply from Artie's
+                                        @if (review.RepliedAt != null) { <span class="text-muted fw-normal">· @review.RepliedAt.Value.ToString("d MMM yyyy")</span> }
+                                    </div>
+                                    <div class="small">@review.AdminReply</div>
+                                </div>
+                            }
                         }
                     </div>
                 }

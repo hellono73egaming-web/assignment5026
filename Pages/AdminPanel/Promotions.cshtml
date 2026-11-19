@@ -124,6 +124,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab">Announcements (@Model.Announcements.Count)</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="rewards-tab" data-bs-toggle="tab" data-bs-target="#rewards" type="button" role="tab">Rewards (@Model.Vouchers.Count)</button>
+            </li>
         </ul>
 
         <div class="tab-content" id="promoTabsContent">
@@ -280,6 +283,182 @@
                 </div>
             </div>
 
+            <!-- ================= REWARDS TAB ================= -->
+            <div class="tab-pane fade" id="rewards" role="tabpanel">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <div>
+                            <h5 class="fw-bold mb-0">Rewards Catalogue</h5>
+                            <div class="text-muted small">Vouchers customers buy with loyalty points (1 point per RM 1 paid) and use at checkout.</div>
+                        </div>
+                        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#voucherModal" data-id="0"><i class="fa-solid fa-plus me-1"></i> Add Reward</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Reward</th>
+                                    <th>Gives</th>
+                                    <th>Cost</th>
+                                    <th>Redeemed</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Vouchers.Any())
+                                {
+                                    <tr><td colspan="6" class="text-muted text-center py-4">No rewards yet.</td></tr>
+                                }
+                                @foreach (var (v, redeemed) in Model.Vouchers)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex gap-3 align-items-center">
+                                                @if (!string.IsNullOrEmpty(v.ImageUrl))
+                                                {
+                                                    <img src="@v.ImageUrl" class="promo-thumb" alt="@v.Name">
+                                                }
+                                                <div>
+                                                    <div class="fw-bold">@v.Name</div>
+                                                    <div class="text-muted small">@v.Description</div>
+                                                    <div class="small text-muted">
+                                                        @if (v.MinSpend > 0) { <span>Min. spend RM @v.MinSpend.ToString("N2") · </span> }
+                                                        Valid @v.ValidDays days
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="fw-bold text-success">
+                                            @v.Label
+                                            @if (v.Type == VoucherType.BuyOneFreeOne && v.MenuItem != null) { <div class="small text-muted fw-normal">@v.MenuItem.Name</div> }
+                                        </td>
+                                        <td class="fw-bold">@v.PointsCost pts</td>
+                                        <td>@redeemed</td>
+                                        <td><span class="status-badge @(v.IsActive ? "badge-active" : "badge-inactive")">@(v.IsActive ? "Active" : "Hidden")</span></td>
+                                        <td class="text-end text-nowrap">
+                                            <button type="button" class="btn btn-sm btn-outline-green btn-action me-1" title="Edit"
+                                                    data-bs-toggle="modal" data-bs-target="#voucherModal"
+                                                    data-id="@v.Id" data-name="@v.Name" data-description="@v.Description"
+                                                    data-points="@v.PointsCost" data-type="@v.Type" data-value="@v.Value.ToString("0.##")"
+                                                    data-item="@v.MenuItemId" data-minspend="@v.MinSpend.ToString("0.##")" data-days="@v.ValidDays"
+                                                    data-image="@v.ImageUrl" data-active="@(v.IsActive ? "true" : "false")">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <form method="post" asp-page-handler="ToggleVoucher" asp-route-id="@v.Id" asp-route-active="@(!v.IsActive)" class="d-inline">
+                                                @if (v.IsActive)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-quiet-danger btn-action" title="Hide from customers"><i class="fa-solid fa-ban"></i></button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success btn-action" title="Show to customers"><i class="fa-solid fa-check"></i></button>
+                                                }
+                                            </form>
+                                            <form method="post" asp-page-handler="DeleteVoucher" asp-route-id="@v.Id" class="d-inline"
+                                                  onsubmit="return confirm('Delete this reward? This cannot be undone.');">
+                                                <button type="submit" class="btn btn-sm btn-quiet-danger btn-action ms-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ADD/EDIT REWARD MODAL -->
+    <div class="modal fade" id="voucherModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="voucherModalTitle" style="font-family: 'Playfair Display', serif; color: var(--primary-green);">Add Reward</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" asp-page-handler="SaveVoucher" enctype="multipart/form-data">
+                        <input type="hidden" name="voucher.Id" id="voucherId" value="0" />
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Reward Name</label>
+                                <input type="text" class="form-control" name="voucher.Name" id="voucherName" required minlength="3" maxlength="80" placeholder="e.g. RM 5 Off">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Points Cost</label>
+                                <input type="number" class="form-control" name="voucher.PointsCost" id="voucherPoints" required min="1" max="100000">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-control" name="voucher.Description" id="voucherDescription" maxlength="250" placeholder="Shown to customers on the Rewards page">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Type</label>
+                                <select class="form-select" name="voucher.Type" id="voucherType" onchange="voucherTypeChanged()">
+                                    <option value="FixedAmount">RM off</option>
+                                    <option value="Percent">% off</option>
+                                    <option value="BuyOneFreeOne">Buy 1 Free 1</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="voucherValueGroup">
+                                <label class="form-label" id="voucherValueLabel">Amount (RM)</label>
+                                <input type="number" class="form-control" name="voucher.Value" id="voucherValue" step="0.01" min="0" max="10000">
+                            </div>
+                            <div class="col-md-8 d-none" id="voucherItemGroup">
+                                <label class="form-label">Dish (buy 2, 1 free)</label>
+                                <select class="form-select" name="voucher.MenuItemId" id="voucherItem">
+                                    <option value="">Choose a dish...</option>
+                                    @foreach (var c in Model.Categories)
+                                    {
+                                        <optgroup label="@c.Name">
+                                            @foreach (var i in c.MenuItems)
+                                            {
+                                                <option value="@i.Id">@i.Name (RM @i.Price.ToString("N2"))</option>
+                                            }
+                                        </optgroup>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Min. Spend (RM)</label>
+                                <input type="number" class="form-control" name="voucher.MinSpend" id="voucherMinSpend" step="0.01" min="0" max="10000" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Valid For (days)</label>
+                                <input type="number" class="form-control" name="voucher.ValidDays" id="voucherDays" min="1" max="365" value="30" required>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" name="voucher.IsActive" id="voucherActive" value="true" checked>
+                                    <label class="form-check-label" for="voucherActive">Available to customers</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="voucherFile">Picture (Optional)</label>
+                                <div class="d-flex gap-3 align-items-center">
+                                    <img id="voucherPreview" class="img-preview d-none" alt="Preview">
+                                    <div id="voucherPreviewEmpty" class="img-preview-empty"><i class="fa-regular fa-image fa-lg"></i></div>
+                                    <div class="flex-grow-1">
+                                        <input type="file" class="form-control" name="voucherImage" id="voucherFile" accept=".jpg,.jpeg,.png,.gif,.webp">
+                                        <div class="form-text small">JPG, PNG, GIF or WEBP (max 5 MB). Shown on the customer Rewards page.</div>
+                                    </div>
+                                </div>
+                                <div class="input-group input-group-sm mt-2">
+                                    <input type="text" class="form-control" name="voucher.ImageUrl" id="voucherImage" placeholder="...or paste an image link (https://...)">
+                                    <button type="button" class="btn btn-outline-secondary" id="voucherImageClear" title="Remove picture"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Save Reward</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -507,6 +686,48 @@
         {
             <text>bootstrap.Tab.getOrCreateInstance(document.getElementById('announcements-tab')).show();</text>
         }
+        @if (Model.Tab == "rewards")
+        {
+            <text>bootstrap.Tab.getOrCreateInstance(document.getElementById('rewards-tab')).show();</text>
+        }
+
+        // ---- Rewards modal ----
+        const voucherPicker = setupImagePicker('voucherFile', 'voucherImage', 'voucherPreview', 'voucherPreviewEmpty');
+        document.getElementById('voucherImageClear').addEventListener('click', () => {
+            document.getElementById('voucherImage').value = '';
+            voucherPicker.reset();
+        });
+
+        // Show the amount box for RM / % vouchers, the dish list for Buy 1 Free 1
+        function voucherTypeChanged() {
+            const type = document.getElementById('voucherType').value;
+            const b1f1 = type === 'BuyOneFreeOne';
+            document.getElementById('voucherValueGroup').classList.toggle('d-none', b1f1);
+            document.getElementById('voucherItemGroup').classList.toggle('d-none', !b1f1);
+            document.getElementById('voucherItem').required = b1f1;
+            document.getElementById('voucherValue').required = !b1f1;
+            document.getElementById('voucherValueLabel').textContent = type === 'Percent' ? 'Percentage (%)' : 'Amount (RM)';
+            document.getElementById('voucherValue').max = type === 'Percent' ? 100 : 10000;
+        }
+
+        document.getElementById('voucherModal').addEventListener('show.bs.modal', e => {
+            const b = e.relatedTarget.dataset;
+            const editing = b.id && b.id !== '0';
+            document.getElementById('voucherModalTitle').textContent = editing ? 'Edit Reward' : 'Add Reward';
+            document.getElementById('voucherId').value = editing ? b.id : 0;
+            document.getElementById('voucherName').value = editing ? b.name : '';
+            document.getElementById('voucherDescription').value = editing ? (b.description || '') : '';
+            document.getElementById('voucherPoints').value = editing ? b.points : 100;
+            document.getElementById('voucherType').value = editing ? b.type : 'FixedAmount';
+            document.getElementById('voucherValue').value = editing ? b.value : '';
+            document.getElementById('voucherItem').value = editing ? (b.item || '') : '';
+            document.getElementById('voucherMinSpend').value = editing ? b.minspend : 0;
+            document.getElementById('voucherDays').value = editing ? b.days : 30;
+            document.getElementById('voucherActive').checked = editing ? b.active === 'true' : true;
+            document.getElementById('voucherImage').value = editing ? (b.image || '') : '';
+            voucherPicker.reset();
+            voucherTypeChanged();
+        });
 
         @if (Model.Message != null || Model.Error != null)
         {

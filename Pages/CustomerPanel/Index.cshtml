@@ -177,6 +177,7 @@
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyReservations">My Reservations</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/MyOrders">My Orders</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Feedback">My Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-page="/CustomerPanel/Rewards">My Rewards</a></li>
                     <li class="nav-item"><a class="nav-link" asp-page="/Profile">My Profile</a></li>
                     <li class="nav-item"><a class="nav-link" href="#notifications" aria-label="Notifications"><i class="fa-solid fa-bell"></i>@if (Model.UnreadCount > 0) {<span class="bell-badge">@Model.UnreadCount</span>}</a></li>
 
@@ -204,7 +205,7 @@
             <p>"A taste of the old country, right here in New Jersey."</p>
             @if ((Model.CurrentCustomer?.LoyaltyPoints ?? 0) > 0)
             {
-                <span class="badge rounded-pill" style="background: var(--accent-gold); color: var(--primary-green);"><i class="fa-solid fa-gift me-1"></i>@Model.CurrentCustomer!.LoyaltyPoints loyalty points</span>
+                <a asp-page="/CustomerPanel/Rewards" class="badge rounded-pill text-decoration-none" style="background: var(--accent-gold); color: var(--primary-green);" title="Spend your points on vouchers"><i class="fa-solid fa-gift me-1"></i>@Model.CurrentCustomer!.LoyaltyPoints loyalty points · Redeem</a>
             }
         </div>
     </div>

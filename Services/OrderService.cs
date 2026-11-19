@@ -30,6 +30,9 @@ namespace WebApplication2.Services
         public string? OrderPromotionTitle { get; set; }
         public string? AppliedPromoCode { get; set; }     // code the customer entered and that gave a discount
         public string? PromoCodeError { get; set; }       // e.g. "Code XYZ is invalid or has expired."
+        public int? VoucherId { get; set; }               // CustomerVoucher used (a rewards voucher code)
+        public string? VoucherName { get; set; }
+        public decimal VoucherDiscount { get; set; }
         public decimal TaxPercent { get; set; }
         public decimal Tax { get; set; }
         public decimal Total { get; set; }
@@ -70,7 +73,9 @@ namespace WebApplication2.Services
         // Promotions: per item, per category, or whole order; Percent or Fixed RM.
         // Promotions with a PromoCode only count when that code is entered at checkout.
         // Each line gets its single best promotion, then the best whole-order promotion is applied.
-        public async Task<OrderQuote> CalculateAsync(IEnumerable<CartLine> cartLines, string? promoCode = null)
+        // promoCode can be a promotion code (e.g. GABAGOOL) or a rewards voucher code (e.g. ART-7K2M9Q).
+        // Voucher codes only work for the customer who bought them, so customerId is needed for those.
+        public async Task<OrderQuote> CalculateAsync(IEnumerable<CartLine> cartLines, string? promoCode = null, string? customerId = null)
         {
             var quote = new OrderQuote();
             var lines = cartLines.Where(l => l.Quantity > 0).ToList();
@@ -84,6 +89,20 @@ namespace WebApplication2.Services
             // Load active promotions, then check dates and codes in memory
             var today = DateTime.Today;
             var code = string.IsNullOrWhiteSpace(promoCode) ? null : promoCode.Trim().ToUpperInvariant();
+
+            // Is the code one of this customer's rewards vouchers? Then it is not a promotion code.
+            CustomerVoucher? voucher = null;
+            if (code != null && customerId != null)
+            {
+                voucher = await _db.CustomerVouchers.AsNoTracking().Include(cv => cv.Voucher)
+                    .FirstOrDefaultAsync(cv => cv.Code == code && cv.CustomerId == customerId);
+                if (voucher != null)
+                {
+                    if (voucher.UsedAt != null) { quote.PromoCodeError = $"Voucher {code} has already been used."; voucher = null; }
+                    else if (voucher.ExpiresAt < DateTime.Now) { quote.PromoCodeError = $"Voucher {code} expired on {voucher.ExpiresAt:d MMM yyyy}."; voucher = null; }
+                    code = null;   // handled as a voucher (or rejected above), not as a promotion code
+                }
+            }
             var promotions = (await _db.Promotions.AsNoTracking()
                     .Where(p => p.IsActive && p.StartDate <= today && p.EndDate >= today)
                     .ToListAsync())
@@ -91,7 +110,7 @@ namespace WebApplication2.Services
                 .Where(p => p.PromoCode == null || (code != null && p.PromoCode.ToUpperInvariant() == code))
                 .ToList();
 
-            if (code != null && !promotions.Any(p => p.PromoCode != null))
+            if (code != null && !promotions.Any(p => p.PromoCode != null) && quote.PromoCodeError == null)
                 quote.PromoCodeError = $"Code {code} is invalid or has expired.";
 
             foreach (var line in lines)
@@ -153,6 +172,35 @@ namespace WebApplication2.Services
                 else quote.PromoCodeError = $"Code {code} doesn't apply to the items in your cart.";
             }
 
+            // Rewards voucher: applied last, on what is left after promotions
+            if (voucher?.Voucher != null)
+            {
+                var left = quote.Subtotal - quote.Discount;
+                var v = voucher.Voucher;
+                var freeLine = v.Type == VoucherType.BuyOneFreeOne
+                    ? quote.Lines.FirstOrDefault(l => l.MenuItemId == v.MenuItemId && l.Quantity >= 2)
+                    : null;
+
+                if (left < v.MinSpend)
+                    quote.PromoCodeError = $"Voucher {voucher.Code} needs a minimum spend of RM {v.MinSpend:N2} (after other discounts).";
+                else if (v.Type == VoucherType.BuyOneFreeOne && freeLine == null)
+                    quote.PromoCodeError = $"Voucher {voucher.Code} is Buy 1 Free 1: add at least 2 of the dish it is for to your cart.";
+                else
+                {
+                    var off = v.Type switch
+                    {
+                        VoucherType.FixedAmount => Math.Min(v.Value, left),
+                        VoucherType.Percent => Round(left * v.Value / 100),
+                        _ => Math.Min(freeLine!.UnitPrice, left)   // one of the two is free
+                    };
+                    quote.VoucherId = voucher.Id;
+                    quote.VoucherName = v.Name;
+                    quote.VoucherDiscount = off;
+                    quote.Discount += off;
+                    quote.AppliedPromoCode = voucher.Code;
+                }
+            }
+
             var settings = await _db.RestaurantSettings.AsNoTracking().FirstOrDefaultAsync();
             quote.TaxPercent = settings?.ServiceTaxPercent ?? 0;
             quote.Tax = Round((quote.Subtotal - quote.Discount) * quote.TaxPercent / 100);
@@ -170,7 +218,7 @@ namespace WebApplication2.Services
                                                                 OrderType orderType, int? reservationId = null,
                                                                 string? notes = null, string? promoCode = null)
         {
-            var quote = await CalculateAsync(cartLines, promoCode);
+            var quote = await CalculateAsync(cartLines, promoCode, customerId);
 
             if (quote.Problems.Count > 0)
                 return ServiceResult<Order>.Fail(string.Join(" ", quote.Problems) + " Please review your cart.");
@@ -214,6 +262,15 @@ namespace WebApplication2.Services
             }
 
             _db.Orders.Add(order);
+
+            // Use up the rewards voucher (it is given back if this order is cancelled)
+            if (quote.VoucherId != null)
+            {
+                var used = await _db.CustomerVouchers.FirstAsync(cv => cv.Id == quote.VoucherId);
+                used.UsedAt = DateTime.Now;
+                used.Order = order;
+            }
+
             _notifications.Queue(customerId, "Order placed",
                 $"Order {order.OrderNumber} (RM {order.Total:N2}) has been sent to the kitchen.",
                 NotificationType.Order);
@@ -263,16 +320,29 @@ namespace WebApplication2.Services
                 _ => null
             };
 
-            // A cancelled order that was already paid online is refunded (simulated),
-            // and the loyalty points earned on it are taken back.
+            // A rewards voucher used on a cancelled order goes back to the customer
+            if (newStatus == OrderStatus.Cancelled)
+            {
+                var usedVoucher = await _db.CustomerVouchers.FirstOrDefaultAsync(cv => cv.OrderId == order.Id);
+                if (usedVoucher != null)
+                {
+                    usedVoucher.UsedAt = null;
+                    usedVoucher.OrderId = null;
+                    message += $" Your voucher {usedVoucher.Code} can be used again.";
+                }
+            }
+
+            // A cancelled order that was already paid is refunded (simulated).
+            // No points to take back: points are only given when an order is completed.
             if (newStatus == OrderStatus.Cancelled && order.Payment?.Status == PaymentStatus.Paid)
             {
                 order.Payment.Status = PaymentStatus.Refunded;
-                var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == order.CustomerId);
-                if (customer != null)
-                    customer.LoyaltyPoints = Math.Max(0, customer.LoyaltyPoints - (int)Math.Floor(order.Payment.Amount * PaymentService.PointsPerRinggit));
                 message += $" Your payment of RM {order.Payment.Amount:N2} has been refunded.";
             }
+
+            // Paid and finished: give the loyalty points (once)
+            if (newStatus == OrderStatus.Completed)
+                await PaymentService.AwardPointsAsync(_db, _notifications, order);
 
             if (message != null)
                 _notifications.Queue(order.CustomerId, $"Order {FriendlyStatus(newStatus).ToLower()}",

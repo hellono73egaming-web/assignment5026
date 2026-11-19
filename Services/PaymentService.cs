@@ -96,18 +96,35 @@ namespace WebApplication2.Services
             payment.TransactionReference = reference;
             payment.ReceiptNumber ??= ReservationService.GenerateCode("RCP");
 
-            // Loyalty points for the customer
-            var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == order.CustomerId);
+            // Loyalty points are NOT given here: they are given once, when the order is completed
+            // (see AwardPointsAsync), so a paid order that is later cancelled never earns points.
             var points = (int)Math.Floor(order.Total * PointsPerRinggit);
-            if (customer != null) customer.LoyaltyPoints += points;
-
             _notifications.Queue(order.CustomerId, "Payment received",
                 $"We received RM {payment.Amount:N2} for order {order.OrderNumber} by {method}. " +
-                $"Receipt {payment.ReceiptNumber}. You earned {points} loyalty points.",
+                $"Receipt {payment.ReceiptNumber}. You'll earn {points} loyalty points when your order is completed.",
                 NotificationType.Payment);
 
             await _db.SaveChangesAsync();
             return payment;
+        }
+
+        // Loyalty points: 1 point per RM 1 paid, given ONCE when a paid order becomes Completed.
+        // Completed is a final status (an order can never become Completed twice), so the points
+        // cannot be earned twice, and cancelled orders never earn any.
+        // Used by SettleBillAsync here and by OrderService.UpdateStatusAsync.
+        public static async Task<int> AwardPointsAsync(ApplicationDbContext db, INotificationService notifications, Order order)
+        {
+            if (order.Status != OrderStatus.Completed || order.Payment?.Status != PaymentStatus.Paid) return 0;
+
+            var points = (int)Math.Floor(order.Payment.Amount * PointsPerRinggit);
+            var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == order.CustomerId);
+            if (customer == null || points <= 0) return 0;
+
+            customer.LoyaltyPoints += points;
+            notifications.Queue(order.CustomerId, "Loyalty points earned",
+                $"You earned {points} loyalty points for order {order.OrderNumber}. Spend them on My Rewards.",
+                NotificationType.General, "/CustomerPanel/Rewards");
+            return points;
         }
 
         // RS13 - staff settles a bill at the counter.
@@ -118,11 +135,12 @@ namespace WebApplication2.Services
                                                   $"Counter-{DateTime.Now:yyyyMMddHHmmss}");
             if (!result.Success) return result;
 
-            var order = await _db.Orders.FindAsync(orderId);
+            var order = await _db.Orders.Include(o => o.Payment).FirstOrDefaultAsync(o => o.Id == orderId);
             if (order != null && order.Status == OrderStatus.Served)
             {
                 order.Status = OrderStatus.Completed;
                 order.UpdatedAt = DateTime.Now;
+                await AwardPointsAsync(_db, _notifications, order);
                 await _db.SaveChangesAsync();
             }
 

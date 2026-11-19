@@ -86,7 +86,10 @@ namespace WebApplication2.Pages.CustomerPanel
             public static PromoCard From(Promotion p)
             {
                 var scope = p.MenuItem != null ? $"On {p.MenuItem.Name}." : p.MenuCategory != null ? $"On all {p.MenuCategory.Name}." : "On your whole order.";
-                var desc = string.Join(" ", new[] { p.Description, scope, p.PromoCode != null ? $"Use code {p.PromoCode} at checkout." : null }
+                // End the admin's text with a full stop so "10% off with code" + "On your whole order." reads properly
+                var text = p.Description?.Trim();
+                if (!string.IsNullOrEmpty(text) && !".!?".Contains(text[^1])) text += ".";
+                var desc = string.Join(" ", new[] { text, scope, p.PromoCode != null ? $"Use code {p.PromoCode} at checkout." : null }
                                              .Where(x => !string.IsNullOrWhiteSpace(x)));
                 return new PromoCard
                 {

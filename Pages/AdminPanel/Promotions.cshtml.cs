@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WebApplication2.Models;
 using WebApplication2.Services.Interfaces;
@@ -13,20 +13,24 @@ namespace WebApplication2.Pages.AdminPanel
         private readonly IAnnouncementService _announcements;
         private readonly IMenuService _menu;
         private readonly IImageStorageService _images;
+        private readonly IRewardService _rewards;
 
         public PromotionsModel(IPromotionService promotions, IAnnouncementService announcements,
-                               IMenuService menu, IImageStorageService images)
+                               IMenuService menu, IImageStorageService images,
+                               IRewardService rewards)
         {
             _promotions = promotions;
             _announcements = announcements;
             _menu = menu;
             _images = images;
+            _rewards = rewards;
         }
 
         // ---- What the page shows ----
         public List<PromotionRow> Promotions { get; set; } = new();
         public List<AnnouncementRow> Announcements { get; set; } = new();
         public List<MenuCategory> Categories { get; set; } = new();
+        public List<(Voucher Voucher, int Redeemed)> Vouchers { get; set; } = new();
 
         [BindProperty(SupportsGet = true)] public string? Tab { get; set; }
         [TempData] public string? Message { get; set; }
@@ -37,6 +41,8 @@ namespace WebApplication2.Pages.AdminPanel
             Categories = await _menu.GetMenuAsync();
             Promotions = (await _promotions.GetAllAsync()).Select(PromotionRow.From).ToList();
             Announcements = (await _announcements.GetAllAsync()).Select(AnnouncementRow.From).ToList();
+            foreach (var v in await _rewards.GetAllAsync())
+                Vouchers.Add((v, await _rewards.CountRedeemedAsync(v.Id)));
         }
 
         // ---- Promotions ----
@@ -161,6 +167,61 @@ namespace WebApplication2.Pages.AdminPanel
             return RedirectToPage(new { tab = "announcements" });
         }
 
+        // ---- Rewards (vouchers customers buy with loyalty points) ----
+        public async Task<IActionResult> OnPostSaveVoucherAsync(VoucherInput voucher, IFormFile? voucherImage)
+        {
+            var existing = voucher.Id == 0 ? null : await _rewards.GetAsync(voucher.Id);
+            var oldImage = existing?.ImageUrl;
+
+            string? uploaded = null;
+            if (voucherImage != null && voucherImage.Length > 0)
+            {
+                var upload = await _images.SaveAsync(voucherImage, "vouchers");
+                if (!upload.Success) { Error = upload.Error; return RedirectToPage(new { tab = "rewards" }); }
+                uploaded = upload.Value;
+                voucher.ImageUrl = uploaded;
+            }
+
+            var result = await _rewards.SaveAsync(new Voucher
+            {
+                Id = voucher.Id,
+                Name = voucher.Name ?? string.Empty,
+                Description = voucher.Description,
+                PointsCost = voucher.PointsCost,
+                Type = voucher.Type,
+                Value = voucher.Value,
+                MenuItemId = voucher.MenuItemId,
+                MinSpend = voucher.MinSpend,
+                ValidDays = voucher.ValidDays,
+                ImageUrl = voucher.ImageUrl,
+                IsActive = voucher.IsActive
+            });
+
+            if (!result.Success) _images.Delete(uploaded);
+            else if (oldImage != null && oldImage != result.Value!.ImageUrl) _images.Delete(oldImage);
+
+            if (result.Success) Message = voucher.Id == 0 ? $"Reward \"{result.Value!.Name}\" added." : $"Reward \"{result.Value!.Name}\" updated.";
+            else Error = result.Error;
+            return RedirectToPage(new { tab = "rewards" });
+        }
+
+        public async Task<IActionResult> OnPostToggleVoucherAsync(int id, bool active)
+        {
+            var result = await _rewards.SetActiveAsync(id, active);
+            if (result.Success) Message = active ? "Reward is now available to customers." : "Reward hidden from customers. Codes already bought still work.";
+            else Error = result.Error;
+            return RedirectToPage(new { tab = "rewards" });
+        }
+
+        public async Task<IActionResult> OnPostDeleteVoucherAsync(int id)
+        {
+            var v = await _rewards.GetAsync(id);
+            var result = await _rewards.DeleteAsync(id);
+            if (result.Success) { _images.Delete(v?.ImageUrl); Message = $"Reward \"{v?.Name}\" deleted."; }
+            else Error = result.Error;
+            return RedirectToPage(new { tab = "rewards" });
+        }
+
         // ---- Form inputs (names match the page: promo.Title, announcement.Message, ...) ----
         public class PromoInput
         {
@@ -253,6 +314,21 @@ namespace WebApplication2.Pages.AdminPanel
                 PublishDate = a.StartDate,
                 IsActive = a.IsActive
             };
+        }
+    
+        public class VoucherInput
+        {
+            public int Id { get; set; }
+            public string? Name { get; set; }
+            public string? Description { get; set; }
+            public int PointsCost { get; set; }
+            public VoucherType Type { get; set; } = VoucherType.FixedAmount;
+            public decimal Value { get; set; }
+            public int? MenuItemId { get; set; }
+            public decimal MinSpend { get; set; }
+            public int ValidDays { get; set; } = 30;
+            public string? ImageUrl { get; set; }
+            public bool IsActive { get; set; }
         }
     }
 }

@@ -130,6 +130,26 @@ namespace WebApplication2.Data
                 db.MenuCategories.AddRange(starters, mains, desserts, drinks);
             }
 
+            // Rewards catalogue (customers buy these with loyalty points: 1 point per RM 1 spent)
+            if (!await db.Vouchers.AnyAsync())
+            {
+                db.Vouchers.AddRange(
+                    new Voucher { Name = "RM 5 Off", Description = "RM 5 off any order of RM 20 or more.", PointsCost = 100,
+                                  Type = VoucherType.FixedAmount, Value = 5, MinSpend = 20, ValidDays = 30 },
+                    new Voucher { Name = "RM 12 Off", Description = "RM 12 off any order of RM 50 or more.", PointsCost = 200,
+                                  Type = VoucherType.FixedAmount, Value = 12, MinSpend = 50, ValidDays = 30 },
+                    new Voucher { Name = "15% Off Your Order", Description = "15% off your whole order. The boss's treat.", PointsCost = 300,
+                                  Type = VoucherType.Percent, Value = 15, MinSpend = 0, ValidDays = 30 },
+                    new Voucher { Name = "RM 30 Family Feast", Description = "RM 30 off a family order of RM 120 or more.", PointsCost = 500,
+                                  Type = VoucherType.FixedAmount, Value = 30, MinSpend = 120, ValidDays = 60 });
+
+                var tiramisu = db.MenuItems.Local.FirstOrDefault(m => m.Name == "Classic Tiramisu")
+                               ?? await db.MenuItems.FirstOrDefaultAsync(m => m.Name == "Classic Tiramisu");
+                if (tiramisu != null)
+                    db.Vouchers.Add(new Voucher { Name = "Buy 1 Free 1 Tiramisu", Description = "Order two Classic Tiramisu and the second one is on us.",
+                                                  PointsCost = 150, Type = VoucherType.BuyOneFreeOne, MenuItem = tiramisu, ValidDays = 30 });
+            }
+
             await db.SaveChangesAsync();
 
             // Orders that were paid online and then served before the auto-complete rule existed

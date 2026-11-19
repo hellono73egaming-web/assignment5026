@@ -133,6 +133,7 @@ builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IChatbotService, ChatbotService>();
 builder.Services.AddScoped<IImageStorageService, ImageStorageService>();
+builder.Services.AddScoped<IRewardService, RewardService>();
 
 var app = builder.Build();
 

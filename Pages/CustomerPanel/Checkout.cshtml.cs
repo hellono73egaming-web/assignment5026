@@ -61,7 +61,7 @@ namespace WebApplication2.Pages.CustomerPanel
             if (lines.Count == 0) return RedirectToPage("/CustomerPanel/Menu");
 
             PromoCode = string.IsNullOrWhiteSpace(PromoCode) ? null : PromoCode.Trim().ToUpperInvariant();
-            Quote = await _orders.CalculateAsync(lines, PromoCode);
+            Quote = await _orders.CalculateAsync(lines, PromoCode, _userManager.GetUserId(User));
             if (Quote.Problems.Count > 0) Error = string.Join(" ", Quote.Problems);
             if (Quote.PromoCodeError != null) PromoCode = null;   // don't carry a code that didn't work
             if (Quote.IsEmpty) Error ??= "Your cart is empty.";
@@ -87,7 +87,7 @@ namespace WebApplication2.Pages.CustomerPanel
             if (!result.Success)
             {
                 await LoadCommonAsync();
-                Quote = await _orders.CalculateAsync(lines, PromoCode);
+                Quote = await _orders.CalculateAsync(lines, PromoCode, userId);
                 Error = result.Error;
                 return Page();
             }
