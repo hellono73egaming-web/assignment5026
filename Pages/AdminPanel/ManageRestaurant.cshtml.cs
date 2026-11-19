@@ -10,9 +10,11 @@ namespace WebApplication2.Pages.AdminPanel
     public class ManageRestaurantModel : PageModel
     {
         private readonly IRestaurantService _restaurant;
+        private readonly IImageStorageService _images;
 
-        public ManageRestaurantModel(IRestaurantService restaurant)
+        public ManageRestaurantModel(IRestaurantService restaurant, IImageStorageService images)
         {
+            _images = images;
             _restaurant = restaurant;
         }
 
@@ -60,9 +62,20 @@ namespace WebApplication2.Pages.AdminPanel
         }
 
         // ---------- Dining areas ----------
-        public async Task<IActionResult> OnPostSaveAreaAsync(AreaInput area)
+        // An uploaded photo wins over the URL box. If the save fails, the new file is removed again.
+        public async Task<IActionResult> OnPostSaveAreaAsync(AreaInput area, IFormFile? imageFile)
         {
+            string? uploaded = null;
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var upload = await _images.SaveAsync(imageFile, "areas");
+                if (!upload.Success) return Done(upload, "", "areas");
+                uploaded = upload.Value;
+                area.ImageUrl = uploaded;
+            }
+
             var result = await _restaurant.SaveAreaAsync(area.Id, area.Name, area.Description, area.ImageUrl);
+            if (!result.Success) _images.Delete(uploaded);
             return Done(result, area.Id == 0 ? $"Dining area \"{area.Name}\" added." : $"Dining area \"{area.Name}\" updated.", "areas");
         }
 

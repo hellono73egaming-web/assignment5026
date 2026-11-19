@@ -76,6 +76,10 @@ namespace WebApplication2.Services
             if (category.MenuItems.Count > 0)
                 return ServiceResult.Fail($"\"{category.Name}\" still has {category.MenuItems.Count} item(s). Move them to another category first.");
 
+            // Promotions for an empty category have nothing to discount any more
+            var promos = await _db.Promotions.Where(p => p.MenuCategoryId == id).ToListAsync();
+            _db.Promotions.RemoveRange(promos);
+
             _db.MenuCategories.Remove(category);
             await _db.SaveChangesAsync();
             return ServiceResult.Ok();
@@ -96,8 +100,9 @@ namespace WebApplication2.Services
                 return ServiceResult.Fail("Price must be between RM 0.01 and RM 10,000.");
             if (!await _db.MenuCategories.AnyAsync(c => c.Id == categoryId))
                 return ServiceResult.Fail("Please choose a category.");
-            if (!string.IsNullOrWhiteSpace(imageUrl) && !Uri.IsWellFormedUriString(imageUrl.Trim(), UriKind.Absolute))
-                return ServiceResult.Fail("Image URL must be a full link starting with http:// or https://.");
+            if (!string.IsNullOrWhiteSpace(imageUrl) && !imageUrl.Trim().StartsWith("/uploads/")
+                && !Uri.IsWellFormedUriString(imageUrl.Trim(), UriKind.Absolute))
+                return ServiceResult.Fail("Image must be an uploaded file or a full link starting with http:// or https://.");
 
             if (await _db.MenuItems.AnyAsync(m => m.Id != id && m.Name.ToLower() == name.ToLower()))
                 return ServiceResult.Fail($"A menu item called \"{name}\" already exists.");

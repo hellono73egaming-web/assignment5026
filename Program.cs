@@ -26,6 +26,30 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// Staff and admin have no link on the public pages: they go straight to /Identity/Account/StaffLogin.
+// If a signed-out user opens a staff/admin page, send them to Staff Login (not the customer login).
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        var path = context.Request.Path;
+        if (path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;   // fetch() calls get 401, not an HTML page
+        }
+        else if (path.StartsWithSegments("/AdminPanel") || path.StartsWithSegments("/StaffPanel"))
+        {
+            var returnUrl = Uri.EscapeDataString(path + context.Request.QueryString);
+            context.Response.Redirect("/Identity/Account/StaffLogin?returnUrl=" + returnUrl);
+        }
+        else
+        {
+            context.Response.Redirect(context.RedirectUri);
+        }
+        return Task.CompletedTask;
+    };
+});
+
 // External logins (Google / Facebook / Microsoft). Keys live in User Secrets, NOT in source code.
 // A provider is only switched on if its keys exist, so the app still runs without them.
 var auth = builder.Services.AddAuthentication();
@@ -101,6 +125,15 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IRestaurantService, RestaurantService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
+builder.Services.AddScoped<IImageStorageService, ImageStorageService>();
+builder.Services.AddScoped<IRewardService, RewardService>();
 
 var app = builder.Build();
 
@@ -115,6 +148,10 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// MapStaticAssets only serves files that existed at build time.
+// UseStaticFiles also serves photos the admin uploads while the app runs (wwwroot/uploads).
+app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
@@ -123,6 +160,13 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+// Advanced 6: chatbot endpoint used by the chat widget (POST JSON { "message": "..." }).
+// Logged-in customers only; their user id lets the bot answer "where is my order?" with their own data.
+app.MapPost("/api/chat", async (ChatRequest request, IChatbotService bot,
+                                System.Security.Claims.ClaimsPrincipal user, UserManager<ApplicationUser> users) =>
+        Results.Ok(await bot.ReplyAsync(request.Message, users.GetUserId(user))))
+   .RequireAuthorization("CustomerOnly");
 
 // Create roles, default accounts and sample data
 await DbSeeder.SeedAsync(app.Services);

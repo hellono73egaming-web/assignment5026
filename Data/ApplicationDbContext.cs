@@ -32,6 +32,8 @@ namespace WebApplication2.Data
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<Feedback> Feedbacks => Set<Feedback>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<Voucher> Vouchers => Set<Voucher>();
+        public DbSet<CustomerVoucher> CustomerVouchers => Set<CustomerVoucher>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -57,6 +59,12 @@ namespace WebApplication2.Data
 
             builder.Entity<RestaurantSetting>().Property(s => s.ServiceTaxPercent).HasPrecision(5, 2);
             builder.Entity<Promotion>().Property(p => p.DiscountPercent).HasPrecision(5, 2);
+            builder.Entity<Promotion>().Property(p => p.DiscountAmount).HasPrecision(10, 2);
+            builder.Entity<Promotion>()
+                .HasOne(p => p.MenuCategory).WithMany()
+                .HasForeignKey(p => p.MenuCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);   // MenuService removes a category's promotions before deleting it
+            builder.Entity<Promotion>().HasIndex(p => p.PromoCode);
 
             // Unique constraints
             builder.Entity<RestaurantTable>().HasIndex(t => t.TableNumber).IsUnique();
@@ -129,6 +137,24 @@ namespace WebApplication2.Data
             builder.Entity<Notification>()
                 .HasOne(n => n.User).WithMany(u => u.Notifications)
                 .HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
+
+            // Rewards: vouchers bought with loyalty points
+            builder.Entity<Voucher>().Property(v => v.Value).HasPrecision(10, 2);
+            builder.Entity<Voucher>().Property(v => v.MinSpend).HasPrecision(10, 2);
+            builder.Entity<Voucher>()
+                .HasOne(v => v.MenuItem).WithMany()
+                .HasForeignKey(v => v.MenuItemId).OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<CustomerVoucher>().HasIndex(cv => cv.Code).IsUnique();
+            builder.Entity<CustomerVoucher>()
+                .HasOne(cv => cv.Customer).WithMany()
+                .HasForeignKey(cv => cv.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<CustomerVoucher>()
+                .HasOne(cv => cv.Voucher).WithMany()
+                .HasForeignKey(cv => cv.VoucherId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<CustomerVoucher>()
+                .HasOne(cv => cv.Order).WithMany()
+                .HasForeignKey(cv => cv.OrderId).OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

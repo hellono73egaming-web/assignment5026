@@ -167,6 +167,9 @@ namespace WebApplication2.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Audience")
+                        .HasColumnType("int");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -279,6 +282,55 @@ namespace WebApplication2.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.CustomerVoucher", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CustomerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PointsSpent")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RedeemedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VoucherId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("CustomerVouchers");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.DiningArea", b =>
                 {
                     b.Property<int>("Id")
@@ -313,6 +365,10 @@ namespace WebApplication2.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AdminReply")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Comment")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -329,6 +385,9 @@ namespace WebApplication2.Migrations
 
                     b.Property<int>("Rating")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("RepliedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int?>("ReservationId")
                         .HasColumnType("int");
@@ -639,18 +698,36 @@ namespace WebApplication2.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<decimal>("DiscountPercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("MenuCategoryId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("MenuItemId")
                         .HasColumnType("int");
+
+                    b.Property<string>("PromoCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -662,7 +739,11 @@ namespace WebApplication2.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MenuCategoryId");
+
                     b.HasIndex("MenuItemId");
+
+                    b.HasIndex("PromoCode");
 
                     b.ToTable("Promotions");
                 });
@@ -792,6 +873,57 @@ namespace WebApplication2.Migrations
                     b.ToTable("RestaurantTables");
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.Voucher", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MenuItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MinSpend")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("PointsCost")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ValidDays")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MenuItemId");
+
+                    b.ToTable("Vouchers");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Admin", b =>
                 {
                     b.HasBaseType("WebApplication2.Models.ApplicationUser");
@@ -892,6 +1024,32 @@ namespace WebApplication2.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.CustomerVoucher", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebApplication2.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WebApplication2.Models.Voucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Voucher");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Feedback", b =>
                 {
                     b.HasOne("WebApplication2.Models.Customer", "Customer")
@@ -989,10 +1147,17 @@ namespace WebApplication2.Migrations
 
             modelBuilder.Entity("WebApplication2.Models.Promotion", b =>
                 {
+                    b.HasOne("WebApplication2.Models.MenuCategory", "MenuCategory")
+                        .WithMany()
+                        .HasForeignKey("MenuCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("WebApplication2.Models.MenuItem", "MenuItem")
                         .WithMany("Promotions")
                         .HasForeignKey("MenuItemId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("MenuCategory");
 
                     b.Navigation("MenuItem");
                 });
@@ -1025,6 +1190,16 @@ namespace WebApplication2.Migrations
                         .IsRequired();
 
                     b.Navigation("DiningArea");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Voucher", b =>
+                {
+                    b.HasOne("WebApplication2.Models.MenuItem", "MenuItem")
+                        .WithMany()
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("MenuItem");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.ApplicationUser", b =>

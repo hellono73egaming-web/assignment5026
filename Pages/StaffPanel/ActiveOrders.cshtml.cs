@@ -41,7 +41,7 @@ namespace WebApplication2.Pages.StaffPanel
             if (result.Success)
             {
                 Message = status == OrderStatus.Served
-                    ? $"Order #{orderNumber} served! Sent to Billing."
+                    ? $"Order #{orderNumber} served! Unpaid orders now wait in Billing; orders already paid online are completed."
                     : undo ? $"Undo successful. Order #{orderNumber} moved back."
                            : $"Order #{orderNumber} moved to {Services.OrderService.FriendlyStatus(status)}.";
                 MessageIsUndo = undo;

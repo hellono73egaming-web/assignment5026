@@ -43,7 +43,8 @@ namespace WebApplication2.Services
         }
 
         // CS21 - promotion broadcast to every active customer
-        public async Task<int> SendToAllCustomersAsync(string title, string message, string? link = null)
+        public async Task<int> SendToAllCustomersAsync(string title, string message, string? link = null,
+                                                       NotificationType type = NotificationType.Promotion)
         {
             var customerIds = await _db.Customers
                 .Where(c => c.IsActive)
@@ -51,10 +52,25 @@ namespace WebApplication2.Services
                 .ToListAsync();
 
             foreach (var id in customerIds)
-                Queue(id, title, message, NotificationType.Promotion, link);
+                Queue(id, title, message, type, link);
 
             await _db.SaveChangesAsync();
             return customerIds.Count;
+        }
+
+        // AD15 - staff-only announcements (all active staff accounts)
+        public async Task<int> SendToAllStaffAsync(string title, string message, string? link = null)
+        {
+            var staffIds = await _db.StaffMembers
+                .Where(s => s.IsActive)
+                .Select(s => s.Id)
+                .ToListAsync();
+
+            foreach (var id in staffIds)
+                Queue(id, title, message, NotificationType.General, link);
+
+            await _db.SaveChangesAsync();
+            return staffIds.Count;
         }
 
         public Task<int> GetUnreadCountAsync(string userId) =>

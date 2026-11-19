@@ -36,6 +36,11 @@ namespace WebApplication2.Pages
         public bool HasPassword { get; set; }
         public string DashboardPage { get; set; } = "/Index";
 
+        // Which navbar to show (taken from the account type in the database, not from the form)
+        public bool IsCustomer { get; set; }
+        public bool IsStaff { get; set; }
+        public bool IsAdmin { get; set; }
+
         public class InputModel
         {
             [Required(ErrorMessage = "Full name is required.")]
@@ -145,6 +150,9 @@ namespace WebApplication2.Pages
             UserRole = profile.RoleName;
             MemberSince = profile.CreatedAt;
             HasPassword = await _profiles.HasPasswordAsync(userId);
+            IsCustomer = profile.IsCustomer;
+            IsStaff = profile.IsStaff;
+            IsAdmin = profile.IsAdmin;
             DashboardPage = profile.IsAdmin ? "/AdminPanel/Index"
                           : profile.IsStaff ? "/StaffPanel/Index"
                           : "/CustomerPanel/Index";

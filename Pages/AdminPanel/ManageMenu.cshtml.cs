@@ -11,10 +11,12 @@ namespace WebApplication2.Pages.AdminPanel
     public class ManageMenuModel : PageModel
     {
         private readonly IMenuService _menu;
+        private readonly IImageStorageService _images;
 
-        public ManageMenuModel(IMenuService menu)
+        public ManageMenuModel(IMenuService menu, IImageStorageService images)
         {
             _menu = menu;
+            _images = images;
         }
 
         public List<MenuCategory> Categories { get; set; } = new();
@@ -52,10 +54,21 @@ namespace WebApplication2.Pages.AdminPanel
         }
 
         // ---------- Items ----------
-        public async Task<IActionResult> OnPostSaveItemAsync(ItemInput item)
+        // An uploaded photo wins over the URL box. If the save fails, the new file is removed again.
+        public async Task<IActionResult> OnPostSaveItemAsync(ItemInput item, IFormFile? imageFile)
         {
+            string? uploaded = null;
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var upload = await _images.SaveAsync(imageFile, "menu");
+                if (!upload.Success) return Done(upload, "", "items");
+                uploaded = upload.Value;
+                item.ImageUrl = uploaded;
+            }
+
             var result = await _menu.SaveItemAsync(item.Id, item.Name, item.Description, item.Price,
                                                    item.CategoryId, item.ImageUrl, item.IsAvailable, item.ItemType);
+            if (!result.Success) _images.Delete(uploaded);
             return Done(result, item.Id == 0 ? $"\"{item.Name}\" added to the menu." : $"\"{item.Name}\" updated.", "items");
         }
 

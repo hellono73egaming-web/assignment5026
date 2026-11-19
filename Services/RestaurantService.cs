@@ -37,8 +37,9 @@ namespace WebApplication2.Services
                 return ServiceResult.Fail("Area name must be 2-50 characters.");
             if (description?.Length > 250)
                 return ServiceResult.Fail("Description can be at most 250 characters.");
-            if (!string.IsNullOrWhiteSpace(imageUrl) && !Uri.IsWellFormedUriString(imageUrl.Trim(), UriKind.Absolute))
-                return ServiceResult.Fail("Image URL must be a full link starting with http:// or https://.");
+            if (!string.IsNullOrWhiteSpace(imageUrl) && !imageUrl.Trim().StartsWith("/uploads/")
+                && !Uri.IsWellFormedUriString(imageUrl.Trim(), UriKind.Absolute))
+                return ServiceResult.Fail("Image must be an uploaded file or a full link starting with http:// or https://.");
 
             var duplicate = await _db.DiningAreas.AnyAsync(a => a.Id != id && a.Name.ToLower() == name.ToLower());
             if (duplicate) return ServiceResult.Fail($"An area called \"{name}\" already exists.");

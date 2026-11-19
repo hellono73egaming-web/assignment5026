@@ -8,6 +8,7 @@ namespace WebApplication2.Services.Interfaces
     {
         Task<AdminDashboardStats> GetAdminStatsAsync();
         Task<StaffDashboardStats> GetStaffStatsAsync();
+        Task<StaffDashboardData> GetStaffDashboardAsync();
         Task<CustomerDashboardData> GetCustomerDashboardAsync(string customerId);
     }
 }
